@@ -226,6 +226,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const channel = supabase
       .channel('zsangam_realtime_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, async () => {
+        const freshMembers = await MemberService.getAll();
+        setUsers(freshMembers);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'departments' }, async () => {
+        const freshDepts = await DepartmentService.getAll();
+        if (freshDepts.length) setDepartments(freshDepts);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, async () => {
+        const freshTeams = await TeamService.getAll();
+        if (freshTeams.length) setTeams(freshTeams);
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, async () => {
         const freshTasks = await TaskService.getAll();
         if (freshTasks.length) setTasks(freshTasks);
@@ -448,17 +460,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addMember = async (memberData: Partial<User>): Promise<User> => {
-    try {
-      if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured()) {
+      try {
         const created = await MemberService.invite(memberData);
         if (created) {
-          setUsers(prev => [created, ...prev]);
-          showToast('Member Onboarded', `${created.name} added to Supabase.`, 'success');
+          setUsers(prev => [created, ...prev.filter(u => u.id !== created.id)]);
+          showToast('Member Saved to Supabase', `${created.name} was successfully stored in Supabase database.`, 'success');
           return created;
         }
+      } catch (err: any) {
+        console.error('Supabase member creation error:', err);
+        showToast('Supabase Error', err?.message || 'Failed to insert profile into Supabase. Run migration 006 in SQL editor.', 'error');
       }
-    } catch (err: any) {
-      console.warn('Supabase member invite error:', err);
     }
 
     const newMember: User = {
@@ -467,7 +480,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       email: memberData.email || 'specialist@zsangam.enterprise',
       role: memberData.role || 'Senior Engineer',
       avatar: memberData.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      department: memberData.department || 'Engineering',
+      department: memberData.department || 'Engineering & Technology',
       team: memberData.team || 'Frontend Engineering',
       status: 'Active',
       skills: memberData.skills || ['TypeScript', 'Cloud', 'Architecture'],
@@ -493,32 +506,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setActivities(prev => [act, ...prev]);
 
-    showToast('Member Onboarded', `${newMember.name} joined the organization workspace.`, 'success');
+    showToast('Member Onboarded (Local)', `${newMember.name} joined workspace in local state.`, 'info');
     return newMember;
   };
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const updateMember = async (userId: string, updates: Partial<User>) => {
-    try {
-      if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured()) {
+      try {
         await MemberService.update(userId, updates);
+      } catch (err: any) {
+        console.error('Error updating member profile in Supabase:', err);
+        showToast('Supabase Update Error', err?.message || 'Failed to update profile in Supabase.', 'error');
       }
-    } catch (err) {
-      console.error('Error updating member profile in Supabase:', err);
     }
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
-    showToast('Member Profile Updated', `Changes to member account saved successfully.`, 'success');
+    showToast('Member Profile Updated', `Changes saved successfully.`, 'success');
   };
 
   const deleteMember = async (userId: string) => {
     const targetUser = users.find(u => u.id === userId);
-    try {
-      if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured()) {
+      try {
         await MemberService.delete(userId);
+      } catch (err: any) {
+        console.error('Error deleting member profile in Supabase:', err);
+        showToast('Supabase Delete Error', err?.message || 'Failed to delete profile from Supabase.', 'error');
       }
-    } catch (err) {
-      console.error('Error deleting member profile in Supabase:', err);
     }
     setUsers(prev => prev.filter(u => u.id !== userId));
     showToast('Member Removed', `${targetUser?.name || 'Member'} was removed from the organization.`, 'info');

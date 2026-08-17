@@ -8,7 +8,6 @@ export class MemberService {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -18,17 +17,17 @@ export class MemberService {
 
     return (data || []).map((p: any) => ({
       id: p.id,
-      name: p.full_name,
+      name: p.full_name || 'Specialist',
       email: p.email,
       role: (p.role as any) || 'Member',
       avatar: p.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      department: p.department_name || 'Engineering',
+      department: p.department_name || 'Engineering & Technology',
       team: p.team_name || 'Frontend Engineering',
       status: (p.status as any) || 'Active',
       skills: p.skills || ['TypeScript', 'Architecture'],
       projectsCount: 2,
       lastActive: 'Just now',
-      location: p.location || 'Headquarters',
+      location: p.location || 'San Francisco, CA',
       phone: p.phone,
       bio: p.bio,
     }));
@@ -48,11 +47,11 @@ export class MemberService {
         organization_id: orgId,
         full_name: member.name || 'Specialist',
         email: member.email || `specialist-${Date.now()}@zsangam.enterprise`,
-        role: (member.role as any) || 'member',
-        department_name: member.department || 'Engineering',
+        role: member.role || 'Member',
+        department_name: member.department || 'Engineering & Technology',
         team_name: member.team || 'Frontend Engineering',
         avatar_url: member.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        status: (member.status as any) || 'Active',
+        status: member.status || 'Active',
         skills: member.skills || ['Enterprise Solutions'],
         location: member.location || 'San Francisco, CA',
       })
@@ -76,7 +75,7 @@ export class MemberService {
       skills: data.skills || [],
       projectsCount: 1,
       lastActive: 'Just now',
-      location: data.location || 'Headquarters',
+      location: data.location || 'San Francisco, CA',
     };
   }
 
@@ -112,7 +111,7 @@ export class MemberService {
 
     if (error) {
       console.error('Error updating member profile in Supabase:', error);
-      return false;
+      throw error;
     }
     return true;
   }
@@ -127,7 +126,7 @@ export class MemberService {
 
     if (error) {
       console.error('Error deleting member profile in Supabase:', error);
-      return false;
+      throw error;
     }
     return true;
   }
