@@ -6,10 +6,9 @@ import {
   LayoutGrid, 
   ListFilter, 
   ChevronRight, 
-  Sparkles,
-  TrendingUp,
-  Building2,
-  ChevronLeft
+  ChevronLeft,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Team } from '../../types';
@@ -19,9 +18,9 @@ export const TeamsView: React.FC = () => {
     teams, 
     departments, 
     projects,
-    setIsQuickCreateOpen, 
-    setActiveView, 
-    showToast 
+    setIsTeamModalOpen,
+    setEditingTeam,
+    deleteTeam
   } = useApp();
 
   const [selectedDeptFilter, setSelectedDeptFilter] = useState('All');
@@ -38,6 +37,22 @@ export const TeamsView: React.FC = () => {
   const avgHealthScore = teams.length 
     ? Math.round(teams.reduce((acc, t) => acc + (t.completionRatePct || 100), 0) / teams.length) 
     : 100;
+
+  const handleOpenNewModal = () => {
+    setEditingTeam(null);
+    setIsTeamModalOpen(true);
+  };
+
+  const handleEditTeam = (team: Team) => {
+    setEditingTeam(team);
+    setIsTeamModalOpen(true);
+  };
+
+  const handleDeleteTeam = (team: Team) => {
+    if (window.confirm(`Are you sure you want to delete squad "${team.name}"?`)) {
+      deleteTeam(team.id);
+    }
+  };
 
   return (
     <div className="space-y-6 pb-12 font-sans">
@@ -56,7 +71,7 @@ export const TeamsView: React.FC = () => {
           <select
             value={selectedDeptFilter}
             onChange={(e) => setSelectedDeptFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+            className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-medium"
           >
             <option value="All">All Departments</option>
             {departments.map(d => (
@@ -66,7 +81,7 @@ export const TeamsView: React.FC = () => {
 
           <button
             id="create-team-btn"
-            onClick={() => setIsQuickCreateOpen(true)}
+            onClick={handleOpenNewModal}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02]"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -138,8 +153,27 @@ export const TeamsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Table View */}
-      {viewMode === 'table' ? (
+      {/* Empty State */}
+      {filteredTeams.length === 0 ? (
+        <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-12 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-3">
+            <Users2 className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-200">No teams found</h3>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm">
+            {search || selectedDeptFilter !== 'All' 
+              ? 'No squad matching your search query or department filter.' 
+              : 'Initialize your organization structure by provisioning your first team.'}
+          </p>
+          <button
+            onClick={handleOpenNewModal}
+            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create First Team</span>
+          </button>
+        </div>
+      ) : viewMode === 'table' ? (
         <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
@@ -150,7 +184,8 @@ export const TeamsView: React.FC = () => {
                   <th className="py-3 px-4">TEAM LEAD</th>
                   <th className="py-3 px-4">MEMBERS</th>
                   <th className="py-3 px-4">PROJECTS COMPLETED</th>
-                  <th className="py-3 px-4 text-right">STATUS</th>
+                  <th className="py-3 px-4">STATUS</th>
+                  <th className="py-3 px-4 text-right">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-medium">
@@ -159,7 +194,7 @@ export const TeamsView: React.FC = () => {
                     'Active': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
                     'Hiring': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
                     'Restructuring': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-                  }[team.status];
+                  }[team.status] || 'bg-slate-800 text-slate-300 border-slate-700';
 
                   return (
                     <tr key={team.id} className="hover:bg-slate-800/40 transition-colors">
@@ -207,10 +242,29 @@ export const TeamsView: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3.5 px-4">
                         <span className={`inline-block px-2.5 py-1 text-[10px] font-bold rounded-md border ${statusStyles}`}>
                           {team.status}
                         </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleEditTeam(team)}
+                            title="Edit Team"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTeam(team)}
+                            title="Delete Team"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -230,7 +284,6 @@ export const TeamsView: React.FC = () => {
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button className="px-2.5 py-1 rounded bg-blue-600 text-white font-bold text-xs">1</button>
-              <button className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs">2</button>
               <button className="p-1 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200">
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -242,16 +295,35 @@ export const TeamsView: React.FC = () => {
           {filteredTeams.map((team) => (
             <div
               key={team.id}
-              className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition-all hover:shadow-xl"
+              className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition-all hover:shadow-xl group"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">
-                    {team.shortTag}
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                    {team.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">
+                      {team.shortTag}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                      {team.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEditTeam(team)}
+                      title="Edit Team"
+                      className="p-1 text-slate-400 hover:text-blue-400 rounded hover:bg-slate-800"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTeam(team)}
+                      title="Delete Team"
+                      className="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-slate-800"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <h3 className="text-base font-bold text-slate-100">{team.name}</h3>

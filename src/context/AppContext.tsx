@@ -74,7 +74,9 @@ interface AppContextType {
   updateMember: (userId: string, updates: Partial<User>) => Promise<void>;
   deleteMember: (userId: string) => Promise<void>;
   addDepartment: (deptData: Partial<Department>) => Promise<Department>;
-  addTeam: (teamData: Partial<Team>) => Promise<Team>;
+  addTeam: (teamData: Partial<Team>, deptId?: string, leadId?: string) => Promise<Team>;
+  updateTeam: (teamId: string, updates: Partial<Team>, leadId?: string, deptId?: string) => Promise<void>;
+  deleteTeam: (teamId: string) => Promise<void>;
   updateRolePermission: (roleId: string, section: 'userManagement' | 'workManagement', permKey: string, val: boolean) => void;
   refreshData: () => Promise<void>;
   
@@ -88,8 +90,12 @@ interface AppContextType {
   setIsQuickCreateOpen: (open: boolean) => void;
   isInviteMemberOpen: boolean;
   setIsInviteMemberOpen: (open: boolean) => void;
+  isTeamModalOpen: boolean;
+  setIsTeamModalOpen: (open: boolean) => void;
   editingUser: User | null;
   setEditingUser: (user: User | null) => void;
+  editingTeam: Team | null;
+  setEditingTeam: (team: Team | null) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
 
@@ -129,6 +135,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState<boolean>(false);
   const [isInviteMemberOpen, setIsInviteMemberOpen] = useState<boolean>(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState<boolean>(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toasts, setToasts] = useState<NotificationToast[]>([]);
 
@@ -575,18 +583,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newDept;
   };
 
-  const addTeam = async (teamData: Partial<Team>): Promise<Team> => {
-    try {
-      if (isSupabaseConfigured()) {
-        const created = await TeamService.create(teamData);
+  const addTeam = async (teamData: Partial<Team>, deptId?: string, leadId?: string): Promise<Team> => {
+    if (isSupabaseConfigured()) {
+      try {
+        const created = await TeamService.create(teamData, deptId, leadId);
         if (created) {
-          setTeams(prev => [created, ...prev]);
+          setTeams(prev => [created, ...prev.filter(t => t.id !== created.id)]);
           showToast('Team Created', `Team ${created.name} saved to Supabase.`, 'success');
           return created;
         }
+      } catch (err: any) {
+        console.error('Supabase team create error:', err);
+        showToast('Supabase Error', err?.message || 'Failed to save team in Supabase.', 'error');
       }
-    } catch (err: any) {
-      console.warn('Supabase team create error:', err);
     }
 
     const newTeam: Team = {
@@ -597,16 +606,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       department: teamData.department || 'Engineering',
       leadName: teamData.leadName || currentUser.name,
       leadAvatar: teamData.leadAvatar || currentUser.avatar,
-      membersCount: 3,
-      activeProjectsCount: 1,
-      completionRatePct: 90,
-      status: 'Active',
+      membersCount: 1,
+      activeProjectsCount: 0,
+      completionRatePct: 100,
+      status: teamData.status || 'Active',
       focusArea: teamData.focusArea || 'Rapid prototyping & production acceleration'
     };
 
     setTeams(prev => [newTeam, ...prev]);
     showToast('Team Created', `Team ${newTeam.name} is now active.`, 'success');
     return newTeam;
+  };
+
+  const updateTeam = async (teamId: string, updates: Partial<Team>, leadId?: string, deptId?: string) => {
+    if (isSupabaseConfigured()) {
+      try {
+        await TeamService.update(teamId, updates, leadId, deptId);
+      } catch (err: any) {
+        console.error('Error updating team in Supabase:', err);
+        showToast('Supabase Update Error', err?.message || 'Failed to update team in Supabase.', 'error');
+      }
+    }
+    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates } : t));
+    showToast('Team Updated', 'Changes saved successfully.', 'success');
+  };
+
+  const deleteTeam = async (teamId: string) => {
+    const targetTeam = teams.find(t => t.id === teamId);
+    if (isSupabaseConfigured()) {
+      try {
+        await TeamService.delete(teamId);
+      } catch (err: any) {
+        console.error('Error deleting team in Supabase:', err);
+        showToast('Supabase Delete Error', err?.message || 'Failed to delete team from Supabase.', 'error');
+      }
+    }
+    setTeams(prev => prev.filter(t => t.id !== teamId));
+    showToast('Team Removed', `${targetTeam?.name || 'Team'} was removed successfully.`, 'info');
   };
 
   const updateRolePermission = (
@@ -666,6 +702,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteMember,
         addDepartment,
         addTeam,
+        updateTeam,
+        deleteTeam,
         updateRolePermission,
         refreshData: loadData,
         theme,
@@ -677,8 +715,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsQuickCreateOpen,
         isInviteMemberOpen,
         setIsInviteMemberOpen,
+        isTeamModalOpen,
+        setIsTeamModalOpen,
         editingUser,
         setEditingUser,
+        editingTeam,
+        setEditingTeam,
         searchQuery,
         setSearchQuery,
         toast: toasts.length > 0 ? toasts[toasts.length - 1] : null,

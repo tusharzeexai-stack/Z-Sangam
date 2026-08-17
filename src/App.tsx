@@ -4,6 +4,7 @@ import { Sidebar } from './components/common/Sidebar';
 import { Header } from './components/common/Header';
 import { QuickCreateModal } from './components/common/QuickCreateModal';
 import { InviteMemberModal } from './components/common/InviteMemberModal';
+import { CreateTeamModal } from './components/common/CreateTeamModal';
 
 // Views
 import { LoginView } from './components/views/LoginView';
@@ -88,6 +89,7 @@ const AppContent: React.FC = () => {
       {/* Global Modals */}
       <QuickCreateModal />
       <InviteMemberModal />
+      <CreateTeamModal />
 
       {/* Toast Notification Banner */}
       {toast && (
