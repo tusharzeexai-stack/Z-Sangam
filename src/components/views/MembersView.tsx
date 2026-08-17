@@ -257,6 +257,21 @@ export const MembersView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-medium">
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <UserCheck className="w-8 h-8 mx-auto text-slate-500 mb-2" />
+                    <p className="text-sm font-semibold text-slate-300">No members in directory</p>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">Click "Add Member" to provision your real team members.</p>
+                    <button
+                      onClick={() => setIsInviteMemberOpen(true)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-md transition-all"
+                    >
+                      + Add Member
+                    </button>
+                  </td>
+                </tr>
+              )}
               {filteredUsers.map((user) => {
                 const isSelected = selectedUserIds.includes(user.id);
                 const statusDot = {

@@ -127,6 +127,20 @@ export const DepartmentsView: React.FC = () => {
         </div>
       </div>
 
+      {filteredDepts.length === 0 && (
+        <div className="p-12 text-center bg-slate-900/80 border border-slate-800/80 rounded-2xl">
+          <Building2 className="w-10 h-10 mx-auto text-slate-500 mb-3" />
+          <h3 className="text-sm font-bold text-slate-200">No Departments Found</h3>
+          <p className="text-xs text-slate-400 mt-1 mb-4">Add real organizational units to group teams, leaders, and projects.</p>
+          <button
+            onClick={() => setIsQuickCreateOpen(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-md transition-all"
+          >
+            + New Department
+          </button>
+        </div>
+      )}
+
       {/* Core Engineering & Operational Units Grid */}
       <div className="space-y-3">
         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">

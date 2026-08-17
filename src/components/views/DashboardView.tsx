@@ -139,20 +139,33 @@ export const DashboardView: React.FC = () => {
             </button>
           </div>
 
-          <div className="space-y-4 my-4">
-            {projects.slice(0, 3).map((proj) => {
-              const isWarning = proj.progressPct < 50 && proj.blockersCount > 0;
-              const isHigh = proj.progressPct >= 75;
-
-              return (
-                <div
-                  key={proj.id}
-                  onClick={() => {
-                    setSelectedProjectId(proj.id);
-                    setActiveView('project-detail');
-                  }}
-                  className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/70 hover:border-blue-500/40 cursor-pointer transition-all hover:bg-slate-950/90 group"
+          <div className="space-y-3 my-3">
+            {projects.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 bg-slate-950/40 rounded-xl border border-slate-800/60">
+                <FolderKanban className="w-8 h-8 mx-auto text-slate-500 mb-2" />
+                <p className="text-xs font-semibold text-slate-300">No active projects yet</p>
+                <p className="text-[11px] text-slate-400 mt-0.5 mb-3">Provision your first project to start tracking team delivery.</p>
+                <button
+                  onClick={() => setActiveView('create-project')}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg shadow-sm"
                 >
+                  + Create Project
+                </button>
+              </div>
+            ) : (
+              projects.slice(0, 3).map((proj) => {
+                const isHigh = proj.progressPct >= 75;
+                const isWarning = proj.blockersCount > 0;
+
+                return (
+                  <div
+                    key={proj.id}
+                    onClick={() => {
+                      setSelectedProjectId(proj.id);
+                      setActiveView('project-detail');
+                    }}
+                    className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/70 hover:border-blue-500/40 cursor-pointer transition-all hover:bg-slate-950/90 group"
+                  >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2.5">
                       <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -201,7 +214,8 @@ export const DashboardView: React.FC = () => {
                   </div>
                 </div>
               );
-            })}
+            })
+          )}
           </div>
 
           <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">

@@ -269,7 +269,22 @@ export const ProjectsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-medium">
-                {filteredProjects.map((proj) => {
+              {filteredProjects.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <FolderKanban className="w-8 h-8 mx-auto text-slate-500 mb-2" />
+                    <p className="text-sm font-semibold text-slate-300">No active projects registered</p>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">Click "Create Project" to initiate real project tracking.</p>
+                    <button
+                      onClick={() => setActiveView('create-project')}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-md transition-all"
+                    >
+                      + Create Project
+                    </button>
+                  </td>
+                </tr>
+              )}
+              {filteredProjects.map((proj) => {
                   const statusColor = {
                     'In Progress': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
                     'Active': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -429,8 +444,22 @@ export const ProjectsView: React.FC = () => {
         </div>
       ) : (
         /* Grid View with SVG Circular Progress Indicator on each Card */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredProjects.map((proj) => {
+        <>
+          {filteredProjects.length === 0 ? (
+            <div className="col-span-full p-12 text-center bg-slate-900/80 border border-slate-800/80 rounded-2xl">
+              <FolderKanban className="w-10 h-10 mx-auto text-slate-500 mb-3" />
+              <h3 className="text-sm font-bold text-slate-200">No projects registered yet</h3>
+              <p className="text-xs text-slate-400 mt-1 mb-4">Start your first initiative to track milestones, tasks, and budgets.</p>
+              <button
+                onClick={() => setActiveView('create-project')}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-md transition-all"
+              >
+                + Create Project
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredProjects.map((proj) => {
             const statusColor = {
               'In Progress': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
               'Active': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -533,6 +562,8 @@ export const ProjectsView: React.FC = () => {
           })}
         </div>
       )}
+    </>
+    )}
     </div>
   );
 };

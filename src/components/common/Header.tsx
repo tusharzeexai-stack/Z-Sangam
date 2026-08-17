@@ -18,7 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MOCK_USERS } from '../../data/mockData';
+
 
 export const Header: React.FC = () => {
   const { 
@@ -300,32 +300,7 @@ export const Header: React.FC = () => {
                 </div>
               </div>
 
-              <div className="py-2">
-                <div className="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Switch Demo Persona
-                </div>
-                {MOCK_USERS.slice(0, 4).map(u => (
-                  <button
-                    key={u.id}
-                    onClick={() => {
-                      setCurrentUser(u);
-                      setShowUserMenu(false);
-                      showToast('Switched Persona', `Active user is now ${u.name} (${u.role})`, 'info');
-                    }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-colors text-left ${
-                      currentUser.id === u.id 
-                        ? 'bg-blue-600/20 text-blue-300 font-semibold' 
-                        : 'text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <img src={u.avatar} alt={u.name} className="w-5 h-5 rounded-full object-cover" />
-                    <div className="truncate">
-                      <div className="truncate text-xs">{u.name}</div>
-                      <div className="text-[10px] text-slate-400 truncate">{u.role}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+
 
               <div className="pt-2 border-t border-slate-800 flex flex-col gap-0.5">
                 <button

@@ -123,13 +123,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(isSupabaseConfigured());
 
-  // Collections (Use live Supabase state when connected; default to mock data only if offline/unconfigured)
-  const [users, setUsers] = useState<User[]>(() => isSupabaseConfigured() ? [] : MOCK_USERS);
-  const [departments, setDepartments] = useState<Department[]>(() => isSupabaseConfigured() ? [] : MOCK_DEPARTMENTS);
-  const [teams, setTeams] = useState<Team[]>(() => isSupabaseConfigured() ? [] : MOCK_TEAMS);
-  const [projects, setProjects] = useState<Project[]>(() => isSupabaseConfigured() ? [] : MOCK_PROJECTS);
-  const [tasks, setTasks] = useState<Task[]>(() => isSupabaseConfigured() ? [] : MOCK_TASKS);
-  const [activities, setActivities] = useState<ActivityEvent[]>(() => isSupabaseConfigured() ? [] : MOCK_ACTIVITIES);
+  // Collections (Pure live database state from Supabase)
+  const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [roles, setRoles] = useState<RolePermission[]>(MOCK_ROLES);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null);
@@ -204,17 +204,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         OrganizationService.getDashboardMetrics()
       ]);
 
-      setDepartments(deptsRes.length > 0 ? deptsRes : MOCK_DEPARTMENTS);
-      setTeams(teamsRes.length > 0 ? teamsRes : MOCK_TEAMS);
-      setUsers(membersRes.length > 0 ? membersRes : MOCK_USERS);
-      setProjects(projectsRes.length > 0 ? projectsRes : MOCK_PROJECTS);
+      setDepartments(deptsRes);
+      setTeams(teamsRes);
+      setUsers(membersRes);
+      setProjects(projectsRes);
       if (projectsRes.length > 0) {
         if (!selectedProjectId || selectedProjectId === 'proj-01') {
           setSelectedProjectId(projectsRes[0].id);
         }
       }
-      setTasks(tasksRes.length > 0 ? tasksRes : MOCK_TASKS);
-      setActivities(actsRes.length > 0 ? actsRes : MOCK_ACTIVITIES);
+      setTasks(tasksRes);
+      setActivities(actsRes);
       setNotifications(notifsRes);
       if (metricsRes) setDashboardMetrics(metricsRes);
 

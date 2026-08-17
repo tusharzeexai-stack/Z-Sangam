@@ -31,11 +31,12 @@ export class ProjectService {
         progressPct: p.progress_pct || 65,
         startDate: p.start_date || '2026-01-01',
         targetEndDate: p.due_date || '2026-12-31',
-        budget: p.budget || '$120,000',
-        spent: '$45,000',
-        riskLevel: (p.risk_level?.toUpperCase() as any) || 'LOW',
-        tasksCount: 12,
-        completedTasksCount: 8,
+        completedTasks: 8,
+        totalTasks: 12,
+        tags: ['Enterprise', 'Q3_Initiative'],
+        blockersCount: 0,
+        commits7dCount: 14,
+        sprintPhaseRemainingDays: 30,
         milestones: []
       }));
     } catch (err) {
@@ -60,7 +61,6 @@ export class ProjectService {
         description: project.description || '',
         status: (project.status === 'In Progress' ? 'in_progress' : project.status === 'Planning' ? 'planning' : project.status === 'Completed' ? 'completed' : 'in_progress') as any,
         priority: (project.priority ? project.priority.toLowerCase() : 'high') as any,
-        budget: project.budget || '$100,000',
         progress_pct: project.progressPct || 0,
         start_date: project.startDate || new Date().toISOString().split('T')[0],
         due_date: project.targetEndDate || '2026-12-31',
@@ -88,11 +88,12 @@ export class ProjectService {
       progressPct: data.progress_pct || 0,
       startDate: data.start_date,
       targetEndDate: data.due_date,
-      budget: data.budget || '$100,000',
-      spent: '$0',
-      riskLevel: 'LOW',
-      tasksCount: 0,
-      completedTasksCount: 0,
+      completedTasks: 0,
+      totalTasks: 0,
+      tags: project.tags || ['Enterprise'],
+      blockersCount: 0,
+      commits7dCount: 0,
+      sprintPhaseRemainingDays: 30,
       milestones: []
     };
   }

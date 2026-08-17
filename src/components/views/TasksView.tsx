@@ -317,6 +317,19 @@ export const TasksView: React.FC = () => {
               </div>
 
               <div className="divide-y divide-slate-800/60">
+                {filteredTasks.length === 0 && (
+                  <div className="p-12 text-center text-slate-400">
+                    <CheckSquare className="w-8 h-8 mx-auto text-slate-500 mb-2" />
+                    <p className="text-sm font-semibold text-slate-300">No tasks created yet</p>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">Click "Dispatch Task" to assign actionable deliverables.</p>
+                    <button
+                      onClick={() => setIsQuickCreateOpen(true)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-md transition-all"
+                    >
+                      + Dispatch Task
+                    </button>
+                  </div>
+                )}
                 {filteredTasks.map((task) => {
                   const isDone = task.status === 'Completed';
 
