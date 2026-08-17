@@ -47,25 +47,7 @@ export class OrganizationService {
     if (!isSupabaseConfigured()) return null;
 
     try {
-      // First try stored procedure
-      const { data: metrics, error: rpcError } = await supabase.rpc('get_dashboard_metrics', {
-        p_org_id: orgId,
-      });
-
-      if (!rpcError && metrics) {
-        return {
-          totalProjects: Number(metrics.totalProjects || 0),
-          activeProjects: Number(metrics.activeProjects || 0),
-          totalDepartments: Number(metrics.totalDepartments || 0),
-          totalTeams: Number(metrics.totalTeams || 0),
-          totalMembers: Number(metrics.totalMembers || 0),
-          totalTasks: Number(metrics.totalTasks || 0),
-          completedTasks: Number(metrics.completedTasks || 0),
-          avgProgress: Number(metrics.avgProgress || 0),
-        };
-      }
-
-      // Fallback to direct aggregated queries
+      // Direct count queries — no stored procedure needed
       const [
         { count: projCount },
         { count: activeProjCount },
@@ -76,12 +58,12 @@ export class OrganizationService {
         { count: doneTaskCount }
       ] = await Promise.all([
         supabase.from('projects').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
-        supabase.from('projects').select('*', { count: 'exact', head: true }).eq('organization_id', orgId).in('status', ['in_progress', 'Active']),
+        supabase.from('projects').select('*', { count: 'exact', head: true }).eq('organization_id', orgId).in('status', ['in_progress', 'active']),
         supabase.from('departments').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
         supabase.from('teams').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
         supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
-        supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'completed')
+        supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'completed'),
       ]);
 
       return {
@@ -92,7 +74,7 @@ export class OrganizationService {
         totalMembers: memberCount || 0,
         totalTasks: taskCount || 0,
         completedTasks: doneTaskCount || 0,
-        avgProgress: 68,
+        avgProgress: 0,
       };
     } catch (err) {
       console.error('Error computing dashboard metrics:', err);

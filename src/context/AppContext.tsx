@@ -118,8 +118,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem('zsangam_auth') === 'true';
   });
-  const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('proj-01');
+  const [currentUser, setCurrentUser] = useState<User>({
+    ...CURRENT_USER,
+    id: '00000000-0000-0000-0000-000000000099',
+  });
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(isSupabaseConfigured());
 
@@ -200,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ProjectService.getAll(),
         TaskService.getAll(),
         ActivityService.getAll(),
-        NotificationService.getUserNotifications(currentUser.id),
+        Promise.resolve([]),  // notifications skipped — admin user has no DB row
         OrganizationService.getDashboardMetrics()
       ]);
 
@@ -208,10 +211,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTeams(teamsRes);
       setUsers(membersRes);
       setProjects(projectsRes);
-      if (projectsRes.length > 0) {
-        if (!selectedProjectId || selectedProjectId === 'proj-01') {
-          setSelectedProjectId(projectsRes[0].id);
-        }
+      if (projectsRes.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(projectsRes[0].id);
       }
       setTasks(tasksRes);
       setActivities(actsRes);
@@ -340,7 +341,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Signed Out', 'You have been securely disconnected.', 'info');
   };
 
-  const selectedProject = projects.find(p => p.id === selectedProjectId) || projects[0];
+  const selectedProject = projects.find(p => p.id === selectedProjectId) ?? projects[0] ?? undefined;
 
   const addProject = async (projectData: Partial<Project>): Promise<Project> => {
     if (isSupabaseConfigured()) {
