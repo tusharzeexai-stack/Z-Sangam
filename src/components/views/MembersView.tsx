@@ -3,6 +3,9 @@ import {
   UserCheck, 
   Search, 
   UserPlus, 
+  Plus,
+  Pencil,
+  Trash2,
   RefreshCw, 
   X, 
   Building2, 
@@ -24,6 +27,8 @@ export const MembersView: React.FC = () => {
     departments, 
     teams, 
     setIsInviteMemberOpen, 
+    setEditingUser,
+    deleteMember,
     showToast 
   } = useApp();
 
@@ -106,12 +111,15 @@ export const MembersView: React.FC = () => {
           </button>
 
           <button
-            id="invite-member-btn"
-            onClick={() => setIsInviteMemberOpen(true)}
+            id="add-member-btn"
+            onClick={() => {
+              setEditingUser(null);
+              setIsInviteMemberOpen(true);
+            }}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02]"
           >
             <UserPlus className="w-4 h-4 stroke-[2.5]" />
-            <span>Invite Member</span>
+            <span>Add Member</span>
           </button>
         </div>
       </div>
@@ -244,7 +252,8 @@ export const MembersView: React.FC = () => {
                 <th className="py-3 px-4">DEPARTMENT / TEAM</th>
                 <th className="py-3 px-4">PROJECTS</th>
                 <th className="py-3 px-4">STATUS</th>
-                <th className="py-3 px-4 text-right">LAST ACTIVE</th>
+                <th className="py-3 px-4">LAST ACTIVE</th>
+                <th className="py-3 px-4 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-medium">
@@ -324,11 +333,38 @@ export const MembersView: React.FC = () => {
                     </td>
 
                     {/* Last Active / Location */}
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 px-4">
                       <div className="text-xs text-slate-300 font-mono">{user.lastActive}</div>
-                      <div className="text-[10px] text-slate-400 flex items-center justify-end gap-1 mt-0.5">
+                      <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
                         <MapPin className="w-3 h-3 text-slate-400" />
                         <span>{user.location}</span>
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setEditingUser(user);
+                            setIsInviteMemberOpen(true);
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 transition-colors"
+                          title="Edit Member"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to remove ${user.name} from the organization?`)) {
+                              deleteMember(user.id);
+                            }
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-rose-400 border border-slate-700 transition-colors"
+                          title="Delete Member"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>

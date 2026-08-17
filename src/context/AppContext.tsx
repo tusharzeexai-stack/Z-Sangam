@@ -71,6 +71,8 @@ interface AppContextType {
   addTask: (taskData: Partial<Task>) => Promise<Task>;
   updateTaskStatus: (taskId: string, newStatus: Task['status']) => Promise<void>;
   addMember: (memberData: Partial<User>) => Promise<User>;
+  updateMember: (userId: string, updates: Partial<User>) => Promise<void>;
+  deleteMember: (userId: string) => Promise<void>;
   addDepartment: (deptData: Partial<Department>) => Promise<Department>;
   addTeam: (teamData: Partial<Team>) => Promise<Team>;
   updateRolePermission: (roleId: string, section: 'userManagement' | 'workManagement', permKey: string, val: boolean) => void;
@@ -86,6 +88,8 @@ interface AppContextType {
   setIsQuickCreateOpen: (open: boolean) => void;
   isInviteMemberOpen: boolean;
   setIsInviteMemberOpen: (open: boolean) => void;
+  editingUser: User | null;
+  setEditingUser: (user: User | null) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
 
@@ -493,6 +497,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newMember;
   };
 
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const updateMember = async (userId: string, updates: Partial<User>) => {
+    try {
+      if (isSupabaseConfigured()) {
+        await MemberService.update(userId, updates);
+      }
+    } catch (err) {
+      console.error('Error updating member profile in Supabase:', err);
+    }
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+    showToast('Member Profile Updated', `Changes to member account saved successfully.`, 'success');
+  };
+
+  const deleteMember = async (userId: string) => {
+    const targetUser = users.find(u => u.id === userId);
+    try {
+      if (isSupabaseConfigured()) {
+        await MemberService.delete(userId);
+      }
+    } catch (err) {
+      console.error('Error deleting member profile in Supabase:', err);
+    }
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    showToast('Member Removed', `${targetUser?.name || 'Member'} was removed from the organization.`, 'info');
+  };
+
   const addDepartment = async (deptData: Partial<Department>): Promise<Department> => {
     try {
       if (isSupabaseConfigured()) {
@@ -616,6 +647,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addTask,
         updateTaskStatus,
         addMember,
+        updateMember,
+        deleteMember,
         addDepartment,
         addTeam,
         updateRolePermission,
@@ -629,6 +662,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsQuickCreateOpen,
         isInviteMemberOpen,
         setIsInviteMemberOpen,
+        editingUser,
+        setEditingUser,
         searchQuery,
         setSearchQuery,
         toast: toasts.length > 0 ? toasts[toasts.length - 1] : null,

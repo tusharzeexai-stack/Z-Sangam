@@ -90,4 +90,45 @@ export class MemberService {
 
     return !error;
   }
+
+  static async update(userId: string, updates: Partial<User>): Promise<boolean> {
+    if (!isSupabaseConfigured()) return true;
+
+    const payload: any = { updated_at: new Date().toISOString() };
+    if (updates.name !== undefined) payload.full_name = updates.name;
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.role !== undefined) payload.role = updates.role;
+    if (updates.department !== undefined) payload.department_name = updates.department;
+    if (updates.team !== undefined) payload.team_name = updates.team;
+    if (updates.avatar !== undefined) payload.avatar_url = updates.avatar;
+    if (updates.status !== undefined) payload.status = updates.status;
+    if (updates.skills !== undefined) payload.skills = updates.skills;
+    if (updates.location !== undefined) payload.location = updates.location;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error updating member profile in Supabase:', error);
+      return false;
+    }
+    return true;
+  }
+
+  static async delete(userId: string): Promise<boolean> {
+    if (!isSupabaseConfigured()) return true;
+
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error deleting member profile in Supabase:', error);
+      return false;
+    }
+    return true;
+  }
 }
