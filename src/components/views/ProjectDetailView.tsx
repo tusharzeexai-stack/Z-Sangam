@@ -24,13 +24,32 @@ import {
   Download,
   Search,
   Filter,
-  CheckSquare
+  CheckSquare,
+  X,
+  UploadCloud,
+  FilePlus,
+  BarChart2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ExportModal } from '../common/ExportModal';
 import { ExportDropdown } from '../common/ExportDropdown';
 import { exportTasksData, exportProjectsData } from '../../utils/exportUtils';
-import { Task } from '../../types';
+import { Task, Project, Milestone } from '../../types';
+
+export interface ProjectFile {
+  id: string;
+  name: string;
+  size: string;
+  updated: string;
+  category: string;
+}
+
+export interface CustomActivity {
+  id: string;
+  text: string;
+  time: string;
+  user: string;
+}
 
 export const ProjectDetailView: React.FC = () => {
   const { 
@@ -41,18 +60,73 @@ export const ProjectDetailView: React.FC = () => {
     addTask,
     updateTaskStatus,
     setIsInviteMemberOpen,
-    showToast 
+    showToast,
+    updateProject,
+    teams: globalTeams,
+    users: globalUsers
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'teams' | 'activity' | 'files' | 'analytics'>('overview');
+  
+  // Modals state
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false);
+  const [showAddTeamModal, setShowAddTeamModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
+  const [showUploadFileModal, setShowUploadFileModal] = useState(false);
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportModalType, setExportModalType] = useState<'project-tasks' | 'projects'>('project-tasks');
   const [taskSearch, setTaskSearch] = useState('');
   const [taskStatusFilter, setTaskStatusFilter] = useState('All');
 
+  // Form inputs
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState(selectedProject?.leadName || 'Sarah Jenkins');
+
+  // Edit project form
+  const [editName, setEditName] = useState('');
+  const [editCode, setEditCode] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editStatus, setEditStatus] = useState<Project['status']>('In Progress');
+  const [editPriority, setEditPriority] = useState<Project['priority']>('High');
+
+  // Add Team form
+  const [selectedTeamName, setSelectedTeamName] = useState('');
+  const [customTeamName, setCustomTeamName] = useState('');
+
+  // Add Member form
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [customMemberName, setCustomMemberName] = useState('');
+  const [customMemberRole, setCustomMemberRole] = useState('Contributor');
+
+  // Add Milestone form
+  const [milestoneTitle, setMilestoneTitle] = useState('');
+  const [milestoneDate, setMilestoneDate] = useState('');
+  const [milestoneStatus, setMilestoneStatus] = useState<'Pending' | 'In Progress' | 'Completed'>('In Progress');
+
+  // Upload File form
+  const [fileName, setFileName] = useState('');
+  const [fileCategory, setFileCategory] = useState('Architecture Spec');
+
+  // Custom Activity form
+  const [activityText, setActivityText] = useState('');
+  const [activityUser, setActivityUser] = useState('Lead Architect');
+
+  // Local state for dynamic files & custom activities
+  const [localFiles, setLocalFiles] = useState<ProjectFile[]>([
+    { id: 'f-1', name: 'Architecture-Whitepaper-v2.pdf', size: '2.4 MB', updated: '2 days ago', category: 'Documentation' },
+    { id: 'f-2', name: 'API-Specification-OpenAPI3.yaml', size: '480 KB', updated: 'Yesterday', category: 'API Spec' },
+    { id: 'f-3', name: 'Security-Compliance-Audit.pdf', size: '1.8 MB', updated: 'Last week', category: 'Security' },
+  ]);
+
+  const [localActivities, setLocalActivities] = useState<CustomActivity[]>([
+    { id: 'a-1', text: 'Sprint milestone checkpoint validated by Lead Architect', time: '2 hours ago', user: 'Lead Architect' },
+    { id: 'a-2', text: 'Pull Request #204 merged into main branch with 100% test coverage', time: '5 hours ago', user: 'Alex Chen' },
+    { id: 'a-3', text: 'Automated performance telemetry benchmarks passed (94.2/100 score)', time: 'Yesterday', user: 'CI/CD Pipeline' },
+  ]);
 
   const project = selectedProject || projects[0];
 
@@ -86,6 +160,100 @@ export const ProjectDetailView: React.FC = () => {
     return true;
   });
 
+  // Handlers
+  const handleOpenEditModal = () => {
+    setEditName(project.name);
+    setEditCode(project.code);
+    setEditDesc(project.description);
+    setEditStatus(project.status);
+    setEditPriority(project.priority);
+    setShowEditProjectModal(true);
+  };
+
+  const handleSaveProjectEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProject(project.id, {
+      name: editName,
+      code: editCode,
+      description: editDesc,
+      status: editStatus,
+      priority: editPriority
+    });
+    setShowEditProjectModal(false);
+    showToast('Project Updated', `${editCode} details saved successfully.`, 'success');
+  };
+
+  const handleAssignTeam = (e: React.FormEvent) => {
+    e.preventDefault();
+    const teamToAdd = selectedTeamName || customTeamName.trim();
+    if (!teamToAdd) return;
+
+    const updatedTeams = [...(project.teams || [])];
+    if (!updatedTeams.includes(teamToAdd)) {
+      updatedTeams.push(teamToAdd);
+      updateProject(project.id, { teams: updatedTeams });
+      showToast('Team Assigned', `Assigned ${teamToAdd} to ${project.code}`, 'success');
+    } else {
+      showToast('Already Assigned', `${teamToAdd} is already attached to this project.`, 'warning');
+    }
+    setSelectedTeamName('');
+    setCustomTeamName('');
+    setShowAddTeamModal(false);
+  };
+
+  const handleAddMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    let memberName = customMemberName.trim();
+    let memberRole = customMemberRole;
+    let memberAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+
+    if (selectedUserId) {
+      const foundUser = globalUsers.find(u => u.id === selectedUserId);
+      if (foundUser) {
+        memberName = foundUser.name;
+        memberRole = foundUser.role;
+        memberAvatar = foundUser.avatar;
+      }
+    }
+
+    if (!memberName) return;
+
+    const newMemberObj = {
+      id: `pm-${Date.now()}`,
+      name: memberName,
+      role: memberRole,
+      avatar: memberAvatar
+    };
+
+    const updatedMembers = [...(project.members || []), newMemberObj];
+    updateProject(project.id, { members: updatedMembers });
+    showToast('Member Added', `Added ${memberName} (${memberRole}) to project personnel.`, 'success');
+    
+    setSelectedUserId('');
+    setCustomMemberName('');
+    setShowAddMemberModal(false);
+  };
+
+  const handleAddMilestone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!milestoneTitle.trim()) return;
+
+    const newMilestone: Milestone = {
+      id: `m-${Date.now()}`,
+      title: milestoneTitle,
+      targetDate: milestoneDate || '2026-10-15',
+      status: milestoneStatus
+    };
+
+    const updatedMilestones = [...(project.milestones || []), newMilestone];
+    updateProject(project.id, { milestones: updatedMilestones });
+    showToast('Milestone Created', `Milestone "${milestoneTitle}" added to roadmap.`, 'success');
+
+    setMilestoneTitle('');
+    setMilestoneDate('');
+    setShowAddMilestoneModal(false);
+  };
+
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
@@ -101,6 +269,41 @@ export const ProjectDetailView: React.FC = () => {
     setNewTaskTitle('');
     setShowAddTaskModal(false);
     showToast('Task Added', `Task assigned to ${newTaskAssignee}`, 'success');
+  };
+
+  const handleUploadFile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fileName.trim()) return;
+
+    const newFile: ProjectFile = {
+      id: `f-${Date.now()}`,
+      name: fileName.endsWith('.pdf') || fileName.endsWith('.yaml') || fileName.endsWith('.docx') ? fileName : `${fileName}.pdf`,
+      size: `${(Math.random() * 3 + 0.5).toFixed(1)} MB`,
+      updated: 'Just now',
+      category: fileCategory
+    };
+
+    setLocalFiles(prev => [newFile, ...prev]);
+    showToast('Document Uploaded', `File ${newFile.name} attached to project repository.`, 'success');
+    setFileName('');
+    setShowUploadFileModal(false);
+  };
+
+  const handleAddActivity = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activityText.trim()) return;
+
+    const newAct: CustomActivity = {
+      id: `a-${Date.now()}`,
+      text: activityText,
+      time: 'Just now',
+      user: activityUser
+    };
+
+    setLocalActivities(prev => [newAct, ...prev]);
+    showToast('Activity Logged', 'Entry recorded in project execution audit log.', 'success');
+    setActivityText('');
+    setShowAddActivityModal(false);
   };
 
   const handleExportProjectTasksCSV = () => {
@@ -163,7 +366,7 @@ export const ProjectDetailView: React.FC = () => {
             </p>
           </div>
 
-          {/* Action Buttons */}
+          {/* Header Action Buttons */}
           <div className="flex flex-wrap items-center gap-3">
             <ExportDropdown
               id="project-dossier-export-dropdown"
@@ -179,15 +382,18 @@ export const ProjectDetailView: React.FC = () => {
             />
 
             <button
-              onClick={() => showToast('Edit Mode', 'Project scope settings opened for editing.', 'info')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors"
+              onClick={handleOpenEditModal}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5 text-slate-300" />
               <span>Edit Project</span>
             </button>
             <button
-              onClick={() => setIsInviteMemberOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors"
+              onClick={() => {
+                setActiveTab('teams');
+                setShowAddMemberModal(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors cursor-pointer"
             >
               <Users className="w-3.5 h-3.5 text-slate-300" />
               <span>Members</span>
@@ -195,10 +401,10 @@ export const ProjectDetailView: React.FC = () => {
             <button
               id="detail-add-task-btn"
               onClick={() => setShowAddTaskModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02]"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Add Task</span>
+              <span>+ Add Task</span>
             </button>
           </div>
         </div>
@@ -208,7 +414,7 @@ export const ProjectDetailView: React.FC = () => {
           {[
             { id: 'overview', label: 'OVERVIEW' },
             { id: 'tasks', label: `TASKS (${projectTasks.length})` },
-            { id: 'teams', label: 'TEAMS & MEMBERS' },
+            { id: 'teams', label: `TEAMS & MEMBERS (${project.teams?.length || 0}/${project.members?.length || 0})` },
             { id: 'activity', label: 'ACTIVITY' },
             { id: 'files', label: 'FILES' },
             { id: 'analytics', label: 'ANALYTICS' },
@@ -218,7 +424,7 @@ export const ProjectDetailView: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-1.5 text-xs font-bold tracking-wider rounded-lg transition-colors shrink-0 ${
+                className={`px-3 py-1.5 text-xs font-bold tracking-wider rounded-lg transition-colors shrink-0 cursor-pointer ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -276,7 +482,7 @@ export const ProjectDetailView: React.FC = () => {
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-100">Overall Execution Progress</div>
-                <div className="text-[11px] text-slate-400 mt-0.5">{project.completedTasks} of {project.totalTasks} milestones finalized</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{project.completedTasks || 0} of {project.totalTasks || 0} milestones finalized</div>
                 <div className="text-[10px] text-emerald-400 font-semibold mt-1 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   <span>Velocity on track for delivery</span>
@@ -289,11 +495,11 @@ export const ProjectDetailView: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">START DATE</span>
-                  <div className="text-xs font-bold text-slate-100 font-mono mt-1">{project.startDate}</div>
+                  <div className="text-xs font-bold text-slate-100 font-mono mt-1">{project.startDate || '2026-01-01'}</div>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TARGET END</span>
-                  <div className="text-xs font-bold text-slate-100 font-mono mt-1">{project.targetEndDate}</div>
+                  <div className="text-xs font-bold text-slate-100 font-mono mt-1">{project.targetEndDate || '2026-12-31'}</div>
                 </div>
               </div>
             </div>
@@ -302,7 +508,7 @@ export const ProjectDetailView: React.FC = () => {
             <div className="md:col-span-4 flex flex-col justify-center md:pl-4">
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-slate-400 font-medium">Current Sprint Phase</span>
-                <span className="font-mono font-bold text-blue-400">{project.sprintPhaseRemainingDays} Days Remaining</span>
+                <span className="font-mono font-bold text-blue-400">{project.sprintPhaseRemainingDays || 30} Days Remaining</span>
               </div>
               <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full w-3/4" />
@@ -323,64 +529,81 @@ export const ProjectDetailView: React.FC = () => {
                     <h3 className="text-sm font-bold text-slate-100">Milestones & Phase Delivery</h3>
                     <p className="text-xs text-slate-400">Sequential checkpoints towards production delivery</p>
                   </div>
-                  <button 
-                    onClick={() => showToast('Roadmap View', 'Full enterprise Gantt roadmap open.', 'info')}
-                    className="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1"
-                  >
-                    <span>View Roadmap</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setShowAddMilestoneModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>+ Add Milestone</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  {project.milestones.map((m) => {
-                    const isCompleted = m.status === 'Completed';
-                    const isInProgress = m.status === 'In Progress';
-
-                    return (
-                      <div
-                        key={m.id}
-                        className={`p-3.5 rounded-xl border flex items-center justify-between transition-all ${
-                          isCompleted
-                            ? 'bg-slate-950/40 border-slate-800/60 text-slate-300'
-                            : isInProgress
-                              ? 'bg-blue-500/10 border-blue-500/30 text-slate-100'
-                              : 'bg-slate-950/20 border-slate-800/40 text-slate-400'
-                        }`}
+                  {(!project.milestones || project.milestones.length === 0) ? (
+                    <div className="p-8 text-center text-slate-400 space-y-3">
+                      <Layers className="w-8 h-8 mx-auto text-slate-600" />
+                      <div className="text-xs font-semibold text-slate-300">No milestones defined yet</div>
+                      <p className="text-[11px] text-slate-500">Create key phase deliverables and delivery checkpoints.</p>
+                      <button
+                        onClick={() => setShowAddMilestoneModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 text-xs font-semibold transition-all cursor-pointer"
                       >
-                        <div className="flex items-center gap-3">
-                          {isCompleted ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                          ) : isInProgress ? (
-                            <div className="w-5 h-5 rounded-full border-2 border-blue-400 flex items-center justify-center shrink-0">
-                              <div className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-                            </div>
-                          ) : (
-                            <Circle className="w-5 h-5 text-slate-400 shrink-0" />
-                          )}
-                          <div>
-                            <div className={`text-xs font-bold ${isInProgress ? 'text-blue-300' : 'text-slate-200'}`}>
-                              {m.title}
-                            </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">
-                              Target: <span className="font-mono">{m.targetDate}</span>
-                              {m.completionDate && <span className="text-emerald-400 ml-2 font-medium">✓ Completed on {m.completionDate}</span>}
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Add Milestone</span>
+                      </button>
+                    </div>
+                  ) : (
+                    project.milestones.map((m) => {
+                      const isCompleted = m.status === 'Completed';
+                      const isInProgress = m.status === 'In Progress';
+
+                      return (
+                        <div
+                          key={m.id}
+                          className={`p-3.5 rounded-xl border flex items-center justify-between transition-all ${
+                            isCompleted
+                              ? 'bg-slate-950/40 border-slate-800/60 text-slate-300'
+                              : isInProgress
+                                ? 'bg-blue-500/10 border-blue-500/30 text-slate-100'
+                                : 'bg-slate-950/20 border-slate-800/40 text-slate-400'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isCompleted ? (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                            ) : isInProgress ? (
+                              <div className="w-5 h-5 rounded-full border-2 border-blue-400 flex items-center justify-center shrink-0">
+                                <div className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                              </div>
+                            ) : (
+                              <Circle className="w-5 h-5 text-slate-400 shrink-0" />
+                            )}
+                            <div>
+                              <div className={`text-xs font-bold ${isInProgress ? 'text-blue-300' : 'text-slate-200'}`}>
+                                {m.title}
+                              </div>
+                              <div className="text-[11px] text-slate-400 mt-0.5">
+                                Target: <span className="font-mono">{m.targetDate}</span>
+                                {m.completionDate && <span className="text-emerald-400 ml-2 font-medium">✓ Completed on {m.completionDate}</span>}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                          isCompleted
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            : isInProgress
-                              ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                              : 'bg-slate-800 text-slate-400 border-slate-700'
-                        }`}>
-                          {m.status}
-                        </span>
-                      </div>
-                    );
-                  })}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                            isCompleted
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : isInProgress
+                                ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                                : 'bg-slate-800 text-slate-400 border-slate-700'
+                          }`}>
+                            {m.status}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
@@ -390,31 +613,17 @@ export const ProjectDetailView: React.FC = () => {
                   <h3 className="text-sm font-bold text-slate-100">Project Scope & Technical Architecture</h3>
                   <div className="flex items-center gap-1 text-[11px] text-slate-400">
                     <Code2 className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Architecture V2.4</span>
+                    <span>Architecture Spec</span>
                   </div>
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Z-Analytics V2 integrates multi-modal transformer embeddings with distributed telemetry pipelines to provide real-time anomalies detection and forecasting. Services run across high-throughput Kafka partitions and low-latency vector databases.
+                  {project.description || 'Enterprise project synchronized across cross-functional units.'}
                 </p>
-
-                {/* Architecture Preview Box */}
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/90 flex flex-col items-center justify-center text-center relative overflow-hidden py-8">
-                  <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px]" />
-                  <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-12 h-12 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-3 shadow-lg shadow-blue-600/20">
-                      <Layers className="w-6 h-6" />
-                    </div>
-                    <div className="text-xs font-bold text-slate-200">Distributed Transformer Topology Pipeline</div>
-                    <div className="text-[11px] text-slate-400 max-w-sm mt-1">
-                      Ingestion (Kafka) → Embedding Layer (PyTorch/CUDA) → Vector Graph (HNSW) → UI Visualizer (WebGL)
-                    </div>
-                  </div>
-                </div>
 
                 {/* Tags */}
                 <div className="flex flex-wrap items-center gap-2 pt-2">
-                  {project.tags.map((tag, idx) => (
+                  {(project.tags || ['Enterprise']).map((tag, idx) => (
                     <span key={idx} className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-md bg-slate-800/90 text-blue-300 border border-slate-700">
                       #{tag}
                     </span>
@@ -429,29 +638,42 @@ export const ProjectDetailView: React.FC = () => {
               
               {/* Lead Department & Involved Teams */}
               <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Department & Involved Teams
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Department & Teams
+                  </h3>
+                  <button
+                    onClick={() => setShowAddTeamModal(true)}
+                    className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Assign Team</span>
+                  </button>
+                </div>
 
                 <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold text-xs">
                     {project.code.slice(0, 3)}
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-100">{project.department}</div>
+                    <div className="text-xs font-bold text-slate-100">{project.department || 'Engineering'}</div>
                     <div className="text-[10px] text-slate-400">Lead Organization Unit</div>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">COLLABORATING TEAMS</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {project.teams.map((t, idx) => (
-                      <span key={idx} className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700/80 font-medium">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
+                  {(!project.teams || project.teams.length === 0) ? (
+                    <div className="text-[11px] text-slate-500 italic py-1">No teams assigned yet.</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.teams.map((t, idx) => (
+                        <span key={idx} className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700/80 font-medium">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -459,30 +681,36 @@ export const ProjectDetailView: React.FC = () => {
               <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    KEY PERSONNEL ({project.members.length} TOTAL)
+                    KEY PERSONNEL ({project.members?.length || 0})
                   </h3>
+                  <button
+                    onClick={() => setShowAddMemberModal(true)}
+                    className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    <span>+ Add Member</span>
+                  </button>
                 </div>
 
-                <div className="divide-y divide-slate-800/60 my-2">
-                  {project.members.map((m) => (
-                    <div key={m.id} className="py-2.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <img src={m.avatar} alt={m.name} className="w-7 h-7 rounded-full object-cover ring-1 ring-blue-500/30" />
-                        <div>
-                          <div className="text-xs font-bold text-slate-200">{m.name}</div>
-                          <div className="text-[10px] text-blue-400 font-medium">{m.role}</div>
+                {(!project.members || project.members.length === 0) ? (
+                  <div className="py-6 text-center text-slate-500 text-xs">
+                    No personnel assigned yet.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-800/60 my-2">
+                    {project.members.map((m) => (
+                      <div key={m.id} className="py-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <img src={m.avatar} alt={m.name} className="w-7 h-7 rounded-full object-cover ring-1 ring-blue-500/30" />
+                          <div>
+                            <div className="text-xs font-bold text-slate-200">{m.name}</div>
+                            <div className="text-[10px] text-blue-400 font-medium">{m.role}</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setIsInviteMemberOpen(true)}
-                  className="w-full text-center text-xs text-blue-400 hover:text-blue-300 font-semibold pt-2 border-t border-slate-800/80 transition-colors"
-                >
-                  View All Members & Roles →
-                </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Blockers & Commit Metrics */}
@@ -492,7 +720,7 @@ export const ProjectDetailView: React.FC = () => {
                     <AlertCircle className="w-4 h-4" />
                     <span>BLOCKERS</span>
                   </div>
-                  <div className="text-2xl font-black text-slate-100 font-mono mt-2">{project.blockersCount}</div>
+                  <div className="text-2xl font-black text-slate-100 font-mono mt-2">{project.blockersCount || 0}</div>
                   <div className="text-[10px] text-slate-400 mt-0.5">Critical blockers open</div>
                 </div>
 
@@ -501,7 +729,7 @@ export const ProjectDetailView: React.FC = () => {
                     <GitCommit className="w-4 h-4" />
                     <span>COMMITS</span>
                   </div>
-                  <div className="text-2xl font-black text-slate-100 font-mono mt-2">{project.commits7dCount.toLocaleString()}</div>
+                  <div className="text-2xl font-black text-slate-100 font-mono mt-2">{(project.commits7dCount || 0).toLocaleString()}</div>
                   <div className="text-[10px] text-slate-400 mt-0.5">Last 7 days velocity</div>
                 </div>
               </div>
@@ -557,10 +785,10 @@ export const ProjectDetailView: React.FC = () => {
 
               <button
                 onClick={() => setShowAddTaskModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Add Task</span>
+                <span>+ Add Task</span>
               </button>
             </div>
           </div>
@@ -568,10 +796,17 @@ export const ProjectDetailView: React.FC = () => {
           {/* Project Task List Table */}
           <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden">
             {filteredProjectTasks.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 space-y-2">
+              <div className="p-12 text-center text-slate-400 space-y-3">
                 <CheckSquare className="w-8 h-8 mx-auto text-slate-600" />
-                <div className="text-sm font-semibold text-slate-300">No tasks found matching criteria</div>
-                <p className="text-xs text-slate-400">Try adjusting your search query or status filter.</p>
+                <div className="text-sm font-semibold text-slate-300">No tasks created for this project</div>
+                <p className="text-xs text-slate-500">Dispatch work items and assign key deliverables to contributors.</p>
+                <button
+                  onClick={() => setShowAddTaskModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold shadow-sm hover:bg-blue-500 transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <span>+ Add First Task</span>
+                </button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -646,47 +881,94 @@ export const ProjectDetailView: React.FC = () => {
       {/* TAB 3: TEAMS & MEMBERS */}
       {activeTab === 'teams' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Assigned Delivery Teams Box */}
           <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-slate-100">Assigned Delivery Teams</h3>
-            <div className="space-y-3">
-              {project.teams.map((t, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-xs">
-                      T{idx + 1}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-200">{t}</div>
-                      <div className="text-[10px] text-slate-400">Core Contributor Unit</div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold">Active</span>
-                </div>
-              ))}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-sm font-bold text-slate-100">Assigned Delivery Teams</h3>
+              <button
+                onClick={() => setShowAddTeamModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>+ Assign Team</span>
+              </button>
             </div>
+
+            {(!project.teams || project.teams.length === 0) ? (
+              <div className="p-8 text-center text-slate-400 space-y-3">
+                <Users className="w-8 h-8 mx-auto text-slate-600" />
+                <div className="text-xs font-semibold text-slate-300">No teams assigned yet</div>
+                <p className="text-[11px] text-slate-500">Assign engineering, design, or product units to collaborate on this project.</p>
+                <button
+                  onClick={() => setShowAddTeamModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Assign Team</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {project.teams.map((t, idx) => (
+                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-xs">
+                        T{idx + 1}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-200">{t}</div>
+                        <div className="text-[10px] text-slate-400">Core Contributor Unit</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold">Active</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* Assigned Key Personnel Box */}
           <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-slate-100">Assigned Key Personnel</h3>
-            <div className="divide-y divide-slate-800/60">
-              {project.members.map((m) => (
-                <div key={m.id} className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img src={m.avatar} alt={m.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-blue-500/30" />
-                    <div>
-                      <div className="text-xs font-bold text-slate-200">{m.name}</div>
-                      <div className="text-[10px] text-blue-400">{m.role}</div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => showToast('Profile', `Viewing ${m.name}'s contributor profile.`, 'info')}
-                    className="text-[11px] text-slate-400 hover:text-slate-200 font-medium"
-                  >
-                    View
-                  </button>
-                </div>
-              ))}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-sm font-bold text-slate-100">Assigned Key Personnel ({project.members?.length || 0})</h3>
+              <button
+                onClick={() => setShowAddMemberModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Add Member</span>
+              </button>
             </div>
+
+            {(!project.members || project.members.length === 0) ? (
+              <div className="p-8 text-center text-slate-400 space-y-3">
+                <UserPlus className="w-8 h-8 mx-auto text-slate-600" />
+                <div className="text-xs font-semibold text-slate-300">No personnel assigned yet</div>
+                <p className="text-[11px] text-slate-500">Assign project managers, tech leads, or core developers.</p>
+                <button
+                  onClick={() => setShowAddMemberModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Add Member</span>
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-800/60">
+                {project.members.map((m) => (
+                  <div key={m.id} className="py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={m.avatar} alt={m.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-blue-500/30" />
+                      <div>
+                        <div className="text-xs font-bold text-slate-200">{m.name}</div>
+                        <div className="text-[10px] text-blue-400">{m.role}</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono">Assigned</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -694,14 +976,23 @@ export const ProjectDetailView: React.FC = () => {
       {/* TAB 4: ACTIVITY */}
       {activeTab === 'activity' && (
         <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 space-y-4">
-          <h3 className="text-sm font-bold text-slate-100">Project Audit & Execution Log</h3>
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-100">Project Audit & Execution Log</h3>
+              <p className="text-xs text-slate-400">Real-time audit telemetry for {project.code}</p>
+            </div>
+            <button
+              onClick={() => setShowAddActivityModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Log Activity</span>
+            </button>
+          </div>
+
           <div className="space-y-3">
-            {[
-              { text: 'Sprint milestone checkpoint validated by Lead Architect', time: '2 hours ago', user: project.leadName },
-              { text: 'Pull Request #204 merged into main branch with 100% test coverage', time: '5 hours ago', user: 'Alex Chen' },
-              { text: 'Automated performance telemetry benchmarks passed (94.2/100 score)', time: 'Yesterday', user: 'CI/CD Pipeline' },
-            ].map((act, idx) => (
-              <div key={idx} className="p-3 rounded-xl bg-slate-950/40 border border-slate-800/60 flex items-center justify-between text-xs">
+            {localActivities.map((act) => (
+              <div key={act.id} className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/60 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
                   <Activity className="w-4 h-4 text-blue-400 shrink-0" />
                   <div>
@@ -719,34 +1010,51 @@ export const ProjectDetailView: React.FC = () => {
       {/* TAB 5: FILES */}
       {activeTab === 'files' && (
         <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-100">Project Documentation & Architecture Files</h3>
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-100">Project Documentation & Architecture Files</h3>
+              <p className="text-xs text-slate-400">Central file repository for specifications and compliance</p>
+            </div>
             <button
-              onClick={() => showToast('File Attached', 'Architecture schematic attached.', 'success')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold"
+              onClick={() => setShowUploadFileModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Upload Document</span>
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>+ Upload Document</span>
             </button>
           </div>
-          <div className="space-y-2">
-            {[
-              { name: `${project.code}-Architecture-Whitepaper-v2.pdf`, size: '2.4 MB', updated: '2 days ago' },
-              { name: `${project.code}-API-Specification-OpenAPI3.yaml`, size: '480 KB', updated: 'Yesterday' },
-              { name: `${project.code}-Security-Compliance-Audit.pdf`, size: '1.8 MB', updated: 'Last week' },
-            ].map((f, idx) => (
-              <div key={idx} className="p-3 rounded-xl bg-slate-950/50 border border-slate-800 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2.5">
-                  <FileText className="w-4 h-4 text-blue-400" />
-                  <span className="font-semibold text-slate-200">{f.name}</span>
+
+          {localFiles.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 space-y-3">
+              <FilePlus className="w-8 h-8 mx-auto text-slate-600" />
+              <div className="text-xs font-semibold text-slate-300">No documents uploaded</div>
+              <button
+                onClick={() => setShowUploadFileModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Upload Document</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {localFiles.map((f) => (
+                <div key={f.id} className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-4 h-4 text-blue-400" />
+                    <div>
+                      <div className="font-semibold text-slate-200">{f.name}</div>
+                      <div className="text-[10px] text-slate-400">{f.category}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
+                    <span>{f.size}</span>
+                    <span>{f.updated}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
-                  <span>{f.size}</span>
-                  <span>{f.updated}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -759,13 +1067,15 @@ export const ProjectDetailView: React.FC = () => {
                 <h3 className="text-sm font-bold text-slate-100">Project Velocity & Milestone Burnup</h3>
                 <p className="text-xs text-slate-400">Execution pacing for {project.name}</p>
               </div>
-              <button
-                onClick={handleExportProjectDossierCSV}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Export Metrics CSV</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportProjectDossierCSV}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Metrics CSV</span>
+                </button>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
@@ -776,12 +1086,12 @@ export const ProjectDetailView: React.FC = () => {
               </div>
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TASKS CLOSED</span>
-                <div className="text-2xl font-bold text-slate-100 font-mono mt-1">{project.completedTasks} / {project.totalTasks}</div>
+                <div className="text-2xl font-bold text-slate-100 font-mono mt-1">{project.completedTasks || 0} / {project.totalTasks || 0}</div>
                 <div className="text-[10px] text-blue-400 font-semibold mt-0.5">Active sprint items</div>
               </div>
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WEEKLY COMMITS</span>
-                <div className="text-2xl font-bold text-slate-100 font-mono mt-1">{project.commits7dCount}</div>
+                <div className="text-2xl font-bold text-slate-100 font-mono mt-1">{project.commits7dCount || 0}</div>
                 <div className="text-[10px] text-purple-400 font-semibold mt-0.5">7-day engineering velocity</div>
               </div>
             </div>
@@ -789,12 +1099,312 @@ export const ProjectDetailView: React.FC = () => {
         </div>
       )}
 
-      {/* Add Task Modal Dialog */}
+      {/* ============================================================================== */}
+      {/* MODALS */}
+      {/* ============================================================================== */}
+
+      {/* MODAL 1: Edit Project Modal */}
+      {showEditProjectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-100">Edit Project: {project.code}</h3>
+              <button onClick={() => setShowEditProjectModal(false)} className="text-slate-400 hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProjectEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Project Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Project Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="In Progress">In Progress</option>
+                    <option value="Planning">Planning</option>
+                    <option value="Completed">Completed</option>
+                    <option value="On Hold">On Hold</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowEditProjectModal(false)}
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/30"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: Assign Team Modal */}
+      {showAddTeamModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-100">Assign Delivery Team</h3>
+              <button onClick={() => setShowAddTeamModal(false)} className="text-slate-400 hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAssignTeam} className="space-y-4">
+              {globalTeams && globalTeams.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Select Existing Team</label>
+                  <select
+                    value={selectedTeamName}
+                    onChange={(e) => {
+                      setSelectedTeamName(e.target.value);
+                      if (e.target.value) setCustomTeamName('');
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">-- Choose from active teams --</option>
+                    {globalTeams.map(t => (
+                      <option key={t.id} value={t.name}>{t.name} ({t.department})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  {globalTeams && globalTeams.length > 0 ? 'Or Type New Team Name' : 'Team Name *'}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Frontend Engineering, Platform Security"
+                  value={customTeamName}
+                  onChange={(e) => {
+                    setCustomTeamName(e.target.value);
+                    if (e.target.value) setSelectedTeamName('');
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddTeamModal(false)}
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/30"
+                >
+                  Assign Team
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: Add Member Modal */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-100">Add Key Personnel</h3>
+              <button onClick={() => setShowAddMemberModal(false)} className="text-slate-400 hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddMember} className="space-y-4">
+              {globalUsers && globalUsers.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Select Directory Member</label>
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => {
+                      setSelectedUserId(e.target.value);
+                      if (e.target.value) setCustomMemberName('');
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">-- Choose from organization directory --</option>
+                    {globalUsers.map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  {globalUsers && globalUsers.length > 0 ? 'Or Type Member Name' : 'Member Name *'}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Alex Morgan, Sarah Jenkins"
+                  value={customMemberName}
+                  onChange={(e) => {
+                    setCustomMemberName(e.target.value);
+                    if (e.target.value) setSelectedUserId('');
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Project Role</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Lead Architect, Tech Lead, Senior Developer"
+                  value={customMemberRole}
+                  onChange={(e) => setCustomMemberRole(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMemberModal(false)}
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/30"
+                >
+                  Add Member
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Add Milestone Modal */}
+      {showAddMilestoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-100">Add Milestone</h3>
+              <button onClick={() => setShowAddMilestoneModal(false)} className="text-slate-400 hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddMilestone} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Milestone Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Phase 1 Architecture Freeze & Security Audit"
+                  value={milestoneTitle}
+                  onChange={(e) => setMilestoneTitle(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Target Date</label>
+                  <input
+                    type="date"
+                    value={milestoneDate}
+                    onChange={(e) => setMilestoneDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Initial Status</label>
+                  <select
+                    value={milestoneStatus}
+                    onChange={(e) => setMilestoneStatus(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="In Progress">In Progress</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMilestoneModal(false)}
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/30"
+                >
+                  Create Milestone
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: Add Task Modal Dialog */}
       {showAddTaskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-200">
-            <h3 className="text-base font-bold text-slate-100 mb-1">Add Task to {project.code}</h3>
-            <p className="text-xs text-slate-400 mb-4">Create and assign work package to project contributors</p>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-100">Add Task to {project.code}</h3>
+              <button onClick={() => setShowAddTaskModal(false)} className="text-slate-400 hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <form onSubmit={handleCreateTask} className="space-y-4">
               <div>
@@ -816,9 +1426,13 @@ export const ProjectDetailView: React.FC = () => {
                   onChange={(e) => setNewTaskAssignee(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
                 >
-                  {project.members.map(m => (
-                    <option key={m.id} value={m.name}>{m.name} ({m.role})</option>
-                  ))}
+                  {project.members && project.members.length > 0 ? (
+                    project.members.map(m => (
+                      <option key={m.id} value={m.name}>{m.name} ({m.role})</option>
+                    ))
+                  ) : (
+                    <option value="Enterprise Lead">Enterprise Lead</option>
+                  )}
                 </select>
               </div>
 
@@ -841,6 +1455,119 @@ export const ProjectDetailView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL 6: Upload Document Modal */}
+      {showUploadFileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-100">Upload Project Document</h3>
+              <button onClick={() => setShowUploadFileModal(false)} className="text-slate-400 hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadFile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Document Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. System-Architecture-v2.pdf"
+                  value={fileName}
+                  onChange={(e) => setFileName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Category</label>
+                <select
+                  value={fileCategory}
+                  onChange={(e) => setFileCategory(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="Architecture Spec">Architecture Spec</option>
+                  <option value="API Documentation">API Documentation</option>
+                  <option value="Security Compliance">Security Compliance</option>
+                  <option value="Release Notes">Release Notes</option>
+                </select>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadFileModal(false)}
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/30"
+                >
+                  Upload File
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 7: Log Activity Modal */}
+      {showAddActivityModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <h3 className="text-base font-bold text-slate-100">Log Execution Activity</h3>
+              <button onClick={() => setShowAddActivityModal(false)} className="text-slate-400 hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddActivity} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Activity Log Event *</label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="e.g. Infrastructure failover configuration passed stress test benchmarking."
+                  value={activityText}
+                  onChange={(e) => setActivityText(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Logged By</label>
+                <input
+                  type="text"
+                  value={activityUser}
+                  onChange={(e) => setActivityUser(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddActivityModal(false)}
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/30"
+                >
+                  Log Activity
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
