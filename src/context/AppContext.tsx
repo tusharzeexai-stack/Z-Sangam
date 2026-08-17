@@ -111,13 +111,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(isSupabaseConfigured());
 
-  // Collections
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
-  const [departments, setDepartments] = useState<Department[]>(MOCK_DEPARTMENTS);
-  const [teams, setTeams] = useState<Team[]>(MOCK_TEAMS);
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
-  const [activities, setActivities] = useState<ActivityEvent[]>(MOCK_ACTIVITIES);
+  // Collections (Use live Supabase state when connected; default to mock data only if offline/unconfigured)
+  const [users, setUsers] = useState<User[]>(() => isSupabaseConfigured() ? [] : MOCK_USERS);
+  const [departments, setDepartments] = useState<Department[]>(() => isSupabaseConfigured() ? [] : MOCK_DEPARTMENTS);
+  const [teams, setTeams] = useState<Team[]>(() => isSupabaseConfigured() ? [] : MOCK_TEAMS);
+  const [projects, setProjects] = useState<Project[]>(() => isSupabaseConfigured() ? [] : MOCK_PROJECTS);
+  const [tasks, setTasks] = useState<Task[]>(() => isSupabaseConfigured() ? [] : MOCK_TASKS);
+  const [activities, setActivities] = useState<ActivityEvent[]>(() => isSupabaseConfigured() ? [] : MOCK_ACTIVITIES);
   const [roles, setRoles] = useState<RolePermission[]>(MOCK_ROLES);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null);
@@ -190,18 +190,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         OrganizationService.getDashboardMetrics()
       ]);
 
-      if (deptsRes.length > 0) setDepartments(deptsRes);
-      if (teamsRes.length > 0) setTeams(teamsRes);
-      if (membersRes.length > 0) setUsers(membersRes);
+      setDepartments(deptsRes);
+      setTeams(teamsRes);
+      setUsers(membersRes);
+      setProjects(projectsRes);
       if (projectsRes.length > 0) {
-        setProjects(projectsRes);
         if (!selectedProjectId || selectedProjectId === 'proj-01') {
           setSelectedProjectId(projectsRes[0].id);
         }
       }
-      if (tasksRes.length > 0) setTasks(tasksRes);
-      if (actsRes.length > 0) setActivities(actsRes);
-      if (notifsRes.length > 0) setNotifications(notifsRes);
+      setTasks(tasksRes);
+      setActivities(actsRes);
+      setNotifications(notifsRes);
       if (metricsRes) setDashboardMetrics(metricsRes);
 
       setIsBackendConnected(true);
