@@ -39,12 +39,23 @@ export const TeamMembersModal: React.FC<TeamMembersModalProps> = ({ team, onClos
 
   if (!team) return null;
 
-  // Filter members belonging to this specific team
-  const teamMembers = users.filter(u => 
-    u.team?.toLowerCase() === team.name.toLowerCase() ||
-    u.team?.toLowerCase() === team.code.toLowerCase() ||
-    (u.department?.toLowerCase() === team.department.toLowerCase() && users.length === 1)
-  );
+  // Filter members belonging to this specific team:
+  // Match on team name (case-insensitive) OR team code, so members created
+  // from either the Members section or the Team modal both appear here.
+  const teamMembers = users.filter(u => {
+    const uTeam = (u.team || '').toLowerCase().trim();
+    const uDept = (u.department || '').toLowerCase().trim();
+    const tName = team.name.toLowerCase().trim();
+    const tCode = (team.code || '').toLowerCase().trim();
+    const tDept = (team.department || '').toLowerCase().trim();
+
+    return (
+      uTeam === tName ||
+      uTeam === tCode ||
+      // If member has no team set but is in same department and only 1 result
+      (uTeam === '' && uDept === tDept)
+    );
+  });
 
   const handleOpenAddForm = () => {
     setEditingMember(null);

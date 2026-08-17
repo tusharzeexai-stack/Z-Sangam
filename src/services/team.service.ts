@@ -6,9 +6,13 @@ export class TeamService {
     if (!isSupabaseConfigured()) return [];
 
     try {
+      // Join with departments to get department_name, and profiles for lead
       const { data, error } = await supabase
         .from('teams')
-        .select('*')
+        .select(`
+          *,
+          departments(id, name)
+        `)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -21,9 +25,10 @@ export class TeamService {
         name: t.name,
         code: t.code,
         shortTag: t.short_tag || t.name.substring(0, 2).toUpperCase(),
-        department: t.department_name || 'Engineering & Technology',
+        // Prefer the joined department name, then stored department_name column, then fallback
+        department: t.departments?.name || t.department_name || 'Unassigned',
         leadName: t.lead_name || 'Unassigned',
-        leadAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        leadAvatar: t.lead_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
         membersCount: t.members_count || 0,
         activeProjectsCount: t.active_projects_count || 0,
         completionRatePct: t.completion_rate_pct || 0,
@@ -57,7 +62,7 @@ export class TeamService {
         focus_area: team.focusArea || '',
         status: team.status || 'Active',
       })
-      .select()
+      .select(`*, departments(id, name)`)
       .single();
 
     if (error) {
@@ -70,12 +75,12 @@ export class TeamService {
       name: data.name,
       code: data.code,
       shortTag: data.short_tag,
-      department: team.department || 'Engineering & Technology',
+      department: (data as any).departments?.name || team.department || 'Unassigned',
       leadName: team.leadName || 'Unassigned',
       leadAvatar: team.leadAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      membersCount: 1,
+      membersCount: 0,
       activeProjectsCount: 0,
-      completionRatePct: 100,
+      completionRatePct: 0,
       status: data.status || 'Active',
       focusArea: data.focus_area || '',
     };
@@ -84,17 +89,25 @@ export class TeamService {
   static async update(id: string, updates: Partial<Team>, leadId?: string, deptId?: string): Promise<boolean> {
     if (!isSupabaseConfigured()) return true;
 
+    const dbUpdates: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.code !== undefined) dbUpdates.code = updates.code;
+    if (updates.shortTag !== undefined) dbUpdates.short_tag = updates.shortTag;
+    if (updates.focusArea !== undefined) {
+      dbUpdates.description = updates.focusArea;
+      dbUpdates.focus_area = updates.focusArea;
+    }
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    // Save department_id so the department is correctly reflected on reload
+    if (deptId !== undefined) dbUpdates.department_id = deptId || null;
+    if (updates.leadName !== undefined) dbUpdates.lead_name = updates.leadName;
+    if (updates.leadAvatar !== undefined) dbUpdates.lead_avatar = updates.leadAvatar;
+
     const { error } = await supabase
       .from('teams')
-      .update({
-        name: updates.name,
-        code: updates.code,
-        short_tag: updates.shortTag,
-        description: updates.focusArea,
-        focus_area: updates.focusArea,
-        status: updates.status,
-        updated_at: new Date().toISOString(),
-      })
+      .update(dbUpdates)
       .eq('id', id);
 
     if (error) {
