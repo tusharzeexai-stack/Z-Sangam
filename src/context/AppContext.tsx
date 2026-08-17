@@ -438,9 +438,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newTask: Task = {
       id: `task-${Date.now()}`,
       title: taskData.title || 'New Work Assignment',
-      projectCode: taskData.projectCode || selectedProject.code,
-      projectName: taskData.projectName || selectedProject.name,
-      department: taskData.department || selectedProject.department,
+      projectCode: taskData.projectCode || selectedProject?.code || 'ZS-PROJ',
+      projectName: taskData.projectName || selectedProject?.name || 'Enterprise Project',
+      department: taskData.department || selectedProject?.department || 'Engineering',
       team: taskData.team || 'Backend Systems',
       assigneeName: taskData.assigneeName || currentUser.name,
       assigneeAvatar: taskData.assigneeAvatar || currentUser.avatar,

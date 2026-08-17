@@ -56,6 +56,28 @@ export const ProjectDetailView: React.FC = () => {
 
   const project = selectedProject || projects[0];
 
+  // Guard: if no project exists yet, show empty state instead of crashing
+  if (!project) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+          <Layers className="w-7 h-7 text-slate-500" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-slate-200">No Project Selected</h2>
+          <p className="text-xs text-slate-400 mt-1">Create your first project to see its details here.</p>
+        </div>
+        <button
+          onClick={() => setActiveView('projects')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to Projects
+        </button>
+      </div>
+    );
+  }
+
   const projectTasks = tasks.filter(t => t.projectCode === project.code);
 
   const filteredProjectTasks = projectTasks.filter(t => {
