@@ -114,7 +114,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return (saved === 'light' || saved === 'dark') ? saved : 'dark';
   });
 
-  const [activeView, setActiveView] = useState<ViewType>('dashboard');
+  const [activeView, setActiveViewState] = useState<ViewType>(() => {
+    const saved = localStorage.getItem('zsangam_active_view');
+    return (saved as ViewType) || 'dashboard';
+  });
+
+  const setActiveView = (view: ViewType) => {
+    setActiveViewState(view);
+    localStorage.setItem('zsangam_active_view', view);
+  };
+
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem('zsangam_auth') === 'true';
   });
@@ -122,7 +131,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ...CURRENT_USER,
     id: '00000000-0000-0000-0000-000000000099',
   });
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+  const [selectedProjectId, setSelectedProjectIdState] = useState<string>(() => {
+    return localStorage.getItem('zsangam_selected_project_id') || '';
+  });
+
+  const setSelectedProjectId = (id: string) => {
+    setSelectedProjectIdState(id);
+    if (id) localStorage.setItem('zsangam_selected_project_id', id);
+  };
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(isSupabaseConfigured());
 
@@ -234,8 +251,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTeams(processedTeams);
       setUsers(membersRes);
       setProjects(projectsRes);
-      if (projectsRes.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(projectsRes[0].id);
+      if (projectsRes.length > 0) {
+        const savedId = localStorage.getItem('zsangam_selected_project_id');
+        if (savedId && projectsRes.some(p => p.id === savedId)) {
+          setSelectedProjectIdState(savedId);
+        } else if (!selectedProjectId) {
+          setSelectedProjectId(projectsRes[0].id);
+        }
       }
       setTasks(tasksRes);
       setActivities(actsRes);
