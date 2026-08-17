@@ -2,174 +2,118 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Project } from '../types';
 
 export class ProjectService {
-  static async getAll(orgId: string = '00000000-0000-0000-0000-000000000001'): Promise<Project[]> {
+  static async getAll(): Promise<Project[]> {
     if (!isSupabaseConfigured()) return [];
 
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        dept:departments(name),
-        lead:profiles!projects_project_lead_id_fkey(id, full_name, avatar_url, role),
-        project_members:project_members(
-          user:profiles(id, full_name, avatar_url, role)
-        ),
-        project_teams:project_teams(
-          team:teams(name)
-        ),
-        tasks:tasks(count),
-        completed_tasks:tasks(count),
-        milestones:project_milestones(*)
-      `)
-      .eq('organization_id', orgId)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching projects from Supabase:', error);
-      return [];
-    }
+      if (error) {
+        console.error('Error fetching projects from Supabase:', error);
+        return [];
+      }
 
-    return (data || []).map((p: any) => {
-      const membersList = (p.project_members || []).map((pm: any) => ({
-        id: pm.user?.id || 'usr-1',
-        name: pm.user?.full_name || 'Team Member',
-        avatar: pm.user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        role: pm.user?.role || 'Contributor',
-      }));
-
-      const teamsList = (p.project_teams || []).map((pt: any) => pt.team?.name || 'Frontend Engineering');
-
-      const milestonesList = (p.milestones || []).map((m: any) => ({
-        id: m.id,
-        title: m.name,
-        targetDate: m.due_date,
-        status: (m.status === 'completed' ? 'Completed' : m.status === 'in_progress' ? 'In Progress' : 'Pending') as any,
-        completionDate: m.completion_date,
-      }));
-
-      return {
+      return (data || []).map((p: any) => ({
         id: p.id,
-        code: p.project_code,
+        code: p.project_code || 'PROJ-01',
         name: p.name,
         description: p.description || '',
         status: (p.status === 'in_progress' ? 'In Progress' : p.status === 'planning' ? 'Planning' : p.status === 'completed' ? 'Completed' : 'On Hold') as any,
         priority: (p.priority ? p.priority.charAt(0).toUpperCase() + p.priority.slice(1) : 'High') as any,
-        department: p.dept?.name || 'Engineering',
-        teams: teamsList.length > 0 ? teamsList : ['Frontend Engineering', 'Backend Systems'],
-        leadName: p.lead?.full_name || 'Enterprise Lead',
-        leadAvatar: p.lead?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        members: membersList.length > 0 ? membersList : [
-          { id: 'usr-1', name: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', role: 'Lead Architect' }
-        ],
-        startDate: p.start_date || 'Aug 20, 2023',
-        targetEndDate: p.end_date || 'Nov 30, 2023',
-        progressPct: p.progress || 0,
-        completedTasks: 4,
-        totalTasks: 12,
-        tags: p.tags || ['Enterprise', 'Q3_Initiative'],
-        blockersCount: 0,
-        commits7dCount: 18,
-        sprintPhaseRemainingDays: 24,
-        milestones: milestonesList.length > 0 ? milestonesList : [
-          { id: `m-${p.id}-1`, title: 'Core Architecture Freeze', targetDate: 'Sep 01, 2023', status: 'Completed' },
-          { id: `m-${p.id}-2`, title: 'Production Security Gate', targetDate: 'Oct 15, 2023', status: 'In Progress' },
-        ],
-      };
-    });
-  }
-
-  static async create(
-    projectData: Partial<Project>,
-    orgId: string = '00000000-0000-0000-0000-000000000001',
-    deptId?: string
-  ): Promise<Project | null> {
-    if (!isSupabaseConfigured()) return null;
-
-    try {
-      // 1. Insert Project into public.projects
-      const { data: proj, error } = await supabase
-        .from('projects')
-        .insert({
-          organization_id: orgId,
-          name: projectData.name || 'Untitled Enterprise Initiative',
-          project_code: projectData.code || `ZS-PROJ-${Math.floor(Math.random() * 900 + 100)}`,
-          description: projectData.description || 'Synchronized enterprise initiative.',
-          status: 'in_progress',
-          priority: (projectData.priority?.toLowerCase() as any) || 'high',
-          department_id: deptId || '10000000-0000-0000-0000-000000000001',
-          progress: projectData.progressPct || 0,
-          tags: projectData.tags || ['Enterprise'],
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // 2. Insert milestones if present
-      if (projectData.milestones && projectData.milestones.length > 0) {
-        const msRows = projectData.milestones.map((m, idx) => ({
-          project_id: proj.id,
-          name: m.title,
-          status: (m.status === 'Completed' ? 'completed' : m.status === 'In Progress' ? 'in_progress' : 'pending'),
-          due_date: new Date().toISOString().split('T')[0],
-          position: idx,
-        }));
-        await supabase.from('project_milestones').insert(msRows as any);
-      }
-
-      // 3. Log Activity
-      await supabase.from('activity_logs').insert({
-        organization_id: orgId,
-        action: 'created a new project',
-        entity_type: 'project',
-        entity_id: proj.id,
-        metadata: { project_code: proj.project_code, name: proj.name },
-      });
-
-      return {
-        id: proj.id,
-        code: proj.project_code,
-        name: proj.name,
-        description: proj.description,
-        status: 'In Progress',
-        priority: projectData.priority || 'High',
-        department: projectData.department || 'Engineering',
-        teams: projectData.teams || ['Frontend Engineering'],
-        leadName: projectData.leadName || 'Enterprise Lead',
-        leadAvatar: projectData.leadAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        members: projectData.members || [],
-        startDate: proj.start_date || 'Today',
-        targetEndDate: proj.end_date || 'Nov 30, 2023',
-        progressPct: proj.progress || 0,
-        completedTasks: 0,
-        totalTasks: 10,
-        tags: proj.tags || [],
-        blockersCount: 0,
-        commits7dCount: 0,
-        sprintPhaseRemainingDays: 30,
-        milestones: projectData.milestones || [],
-      };
+        department: p.department_name || 'Engineering & Technology',
+        teams: p.teams || ['Frontend Engineering', 'Backend Systems'],
+        leadName: p.lead_name || 'Enterprise Lead',
+        leadAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        members: [],
+        progressPct: p.progress_pct || 65,
+        startDate: p.start_date || '2026-01-01',
+        targetEndDate: p.due_date || '2026-12-31',
+        budget: p.budget || '$120,000',
+        spent: '$45,000',
+        riskLevel: (p.risk_level?.toUpperCase() as any) || 'LOW',
+        tasksCount: 12,
+        completedTasksCount: 8,
+        milestones: []
+      }));
     } catch (err) {
-      console.error('Error in ProjectService.create:', err);
-      throw err;
+      console.error('ProjectService.getAll exception:', err);
+      return [];
     }
   }
 
-  static async update(id: string, updates: Partial<Project>): Promise<boolean> {
+  static async create(project: Partial<Project>): Promise<Project | null> {
+    if (!isSupabaseConfigured()) return null;
+
+    const newId = crypto.randomUUID();
+    const code = project.code || `PRJ-${Math.floor(100 + Math.random() * 900)}`;
+
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({
+        id: newId,
+        organization_id: '00000000-0000-0000-0000-000000000001',
+        name: project.name,
+        project_code: code,
+        description: project.description || '',
+        status: (project.status === 'In Progress' ? 'in_progress' : project.status === 'Planning' ? 'planning' : project.status === 'Completed' ? 'completed' : 'in_progress') as any,
+        priority: (project.priority ? project.priority.toLowerCase() : 'high') as any,
+        budget: project.budget || '$100,000',
+        progress_pct: project.progressPct || 0,
+        start_date: project.startDate || new Date().toISOString().split('T')[0],
+        due_date: project.targetEndDate || '2026-12-31',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating project in Supabase:', error);
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      code: data.project_code,
+      name: data.name,
+      description: data.description || '',
+      status: (data.status === 'in_progress' ? 'In Progress' : data.status === 'planning' ? 'Planning' : 'In Progress') as any,
+      priority: project.priority || 'High',
+      department: project.department || 'Engineering',
+      teams: project.teams || ['Frontend Engineering'],
+      leadName: project.leadName || 'Enterprise Lead',
+      leadAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      members: project.members || [],
+      progressPct: data.progress_pct || 0,
+      startDate: data.start_date,
+      targetEndDate: data.due_date,
+      budget: data.budget || '$100,000',
+      spent: '$0',
+      riskLevel: 'LOW',
+      tasksCount: 0,
+      completedTasksCount: 0,
+      milestones: []
+    };
+  }
+
+  static async updateStatus(id: string, status: Project['status']): Promise<boolean> {
     if (!isSupabaseConfigured()) return true;
+
+    const mappedStatus = status === 'In Progress' ? 'in_progress' : status === 'Planning' ? 'planning' : status === 'Completed' ? 'completed' : 'on_hold';
 
     const { error } = await supabase
       .from('projects')
       .update({
-        name: updates.name,
-        description: updates.description,
-        status: updates.status ? (updates.status.toLowerCase().replace(' ', '_') as any) : undefined,
-        priority: updates.priority ? (updates.priority.toLowerCase() as any) : undefined,
-        progress: updates.progressPct,
+        status: mappedStatus as any,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id);
 
-    return !error;
+    if (error) {
+      console.error('Error updating project status:', error);
+      throw error;
+    }
+    return true;
   }
 }

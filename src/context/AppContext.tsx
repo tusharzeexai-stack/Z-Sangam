@@ -204,17 +204,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         OrganizationService.getDashboardMetrics()
       ]);
 
-      setDepartments(deptsRes);
-      setTeams(teamsRes);
-      setUsers(membersRes);
-      setProjects(projectsRes);
+      setDepartments(deptsRes.length > 0 ? deptsRes : MOCK_DEPARTMENTS);
+      setTeams(teamsRes.length > 0 ? teamsRes : MOCK_TEAMS);
+      setUsers(membersRes.length > 0 ? membersRes : MOCK_USERS);
+      setProjects(projectsRes.length > 0 ? projectsRes : MOCK_PROJECTS);
       if (projectsRes.length > 0) {
         if (!selectedProjectId || selectedProjectId === 'proj-01') {
           setSelectedProjectId(projectsRes[0].id);
         }
       }
-      setTasks(tasksRes);
-      setActivities(actsRes);
+      setTasks(tasksRes.length > 0 ? tasksRes : MOCK_TASKS);
+      setActivities(actsRes.length > 0 ? actsRes : MOCK_ACTIVITIES);
       setNotifications(notifsRes);
       if (metricsRes) setDashboardMetrics(metricsRes);
 
@@ -343,18 +343,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const selectedProject = projects.find(p => p.id === selectedProjectId) || projects[0];
 
   const addProject = async (projectData: Partial<Project>): Promise<Project> => {
-    try {
-      if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured()) {
+      try {
         const created = await ProjectService.create(projectData);
         if (created) {
-          setProjects(prev => [created, ...prev]);
+          setProjects(prev => [created, ...prev.filter(p => p.id !== created.id)]);
           setSelectedProjectId(created.id);
-          showToast('Project Created', `Project ${created.code} was persisted to Supabase database.`, 'success');
+          showToast('Project Created', `Project ${created.code} saved to Supabase database.`, 'success');
           return created;
         }
+      } catch (err: any) {
+        console.error('Supabase project creation error:', err);
+        showToast('Supabase Error', err?.message || 'Failed to save project in Supabase.', 'error');
       }
-    } catch (err: any) {
-      console.warn('Supabase project creation failed, persisting locally:', err);
     }
 
     // Local / Offline Fallback
@@ -580,17 +581,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addDepartment = async (deptData: Partial<Department>): Promise<Department> => {
-    try {
-      if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured()) {
+      try {
         const created = await DepartmentService.create(deptData);
         if (created) {
-          setDepartments(prev => [created, ...prev]);
+          setDepartments(prev => [created, ...prev.filter(d => d.id !== created.id)]);
           showToast('Department Provisioned', `Department ${created.name} saved to Supabase.`, 'success');
           return created;
         }
+      } catch (err: any) {
+        console.error('Supabase dept create error:', err);
+        showToast('Supabase Error', err?.message || 'Failed to save department in Supabase.', 'error');
       }
-    } catch (err: any) {
-      console.warn('Supabase dept create error:', err);
     }
 
     const newDept: Department = {
@@ -604,10 +606,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       membersCount: 4,
       activeProjectsCount: 1,
       resourceAllocationPct: 75,
-      status: 'ON TRACK',
+      status: (deptData.status as any) || 'ON TRACK',
       leadEmail: currentUser.email,
-      accentColor: '#3b82f6',
-      category: 'Strategic Innovation'
+      accentColor: deptData.accentColor || '#3b82f6',
+      category: deptData.category || 'Strategic Innovation'
     };
 
     setDepartments(prev => [newDept, ...prev]);

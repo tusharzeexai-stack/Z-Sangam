@@ -2,79 +2,62 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Team } from '../types';
 
 export class TeamService {
-  static async getAll(orgId: string = '00000000-0000-0000-0000-000000000001'): Promise<Team[]> {
+  static async getAll(): Promise<Team[]> {
     if (!isSupabaseConfigured()) return [];
 
-    const { data, error } = await supabase
-      .from('teams')
-      .select(`
-        *,
-        dept:departments(name),
-        lead:profiles!teams_team_lead_id_fkey(full_name, avatar_url),
-        members:team_members(count)
-      `)
-      .order('created_at', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching teams from Supabase:', error);
+      if (error) {
+        console.error('Error fetching teams from Supabase:', error);
+        return [];
+      }
+
+      return (data || []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        code: t.code,
+        shortTag: t.short_tag || t.name.substring(0, 2).toUpperCase(),
+        department: t.department_name || 'Engineering & Technology',
+        leadName: t.lead_name || 'Unassigned',
+        leadAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        membersCount: 3,
+        activeProjectsCount: 2,
+        completionRatePct: 90,
+        status: (t.status as any) || 'Active',
+        focusArea: t.focus_area || t.description || 'Enterprise execution squad',
+      }));
+    } catch (err) {
+      console.error('TeamService.getAll exception:', err);
       return [];
     }
-
-    return (data || []).map((t: any) => ({
-      id: t.id,
-      name: t.name,
-      code: t.code,
-      shortTag: t.short_tag,
-      department: t.dept?.name || 'Engineering & Technology',
-      leadName: t.lead?.full_name || 'Unassigned',
-      leadAvatar: t.lead?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      membersCount: t.members?.[0]?.count || 1,
-      activeProjectsCount: 2,
-      completionRatePct: 92,
-      status: (t.status as any) || 'Active',
-      focusArea: t.focus_area || t.description || 'Enterprise platform delivery',
-    }));
   }
 
   static async create(
     team: Partial<Team>, 
     deptId?: string,
-    leadId?: string,
-    orgId: string = '00000000-0000-0000-0000-000000000001'
+    leadId?: string
   ): Promise<Team | null> {
     if (!isSupabaseConfigured()) return null;
 
-    let targetDeptId = deptId;
-    if (!targetDeptId && team.department) {
-      const { data: dept } = await supabase
-        .from('departments')
-        .select('id')
-        .eq('name', team.department)
-        .maybeSingle();
-      if (dept) targetDeptId = dept.id;
-    }
-    if (!targetDeptId) {
-      targetDeptId = '10000000-0000-0000-0000-000000000001';
-    }
-
+    const newId = crypto.randomUUID();
     const { data, error } = await supabase
       .from('teams')
       .insert({
-        organization_id: orgId,
-        department_id: targetDeptId,
-        team_lead_id: leadId || null,
+        id: newId,
+        organization_id: '00000000-0000-0000-0000-000000000001',
+        department_id: deptId || null,
         name: team.name,
-        code: team.code || `${team.name?.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 90 + 10)}`,
-        short_tag: team.shortTag || team.name?.substring(0, 2).toUpperCase() || 'TM',
-        description: team.focusArea || 'Squad operational focus',
-        focus_area: team.focusArea || 'Squad operational focus',
-        status: (team.status as any) || 'Active',
+        code: team.code || `TM-${team.name?.substring(0, 3).toUpperCase()}`,
+        short_tag: team.shortTag || team.name?.substring(0, 2).toUpperCase(),
+        description: team.focusArea || '',
+        focus_area: team.focusArea || '',
+        status: team.status || 'Active',
       })
-      .select(`
-        *,
-        dept:departments(name),
-        lead:profiles!teams_team_lead_id_fkey(full_name, avatar_url)
-      `)
+      .select()
       .single();
 
     if (error) {
@@ -87,54 +70,50 @@ export class TeamService {
       name: data.name,
       code: data.code,
       shortTag: data.short_tag,
-      department: data.dept?.name || team.department || 'Engineering & Technology',
-      leadName: data.lead?.full_name || team.leadName || 'Unassigned',
-      leadAvatar: data.lead?.avatar_url || team.leadAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      department: team.department || 'Engineering & Technology',
+      leadName: team.leadName || 'Unassigned',
+      leadAvatar: team.leadAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       membersCount: 1,
       activeProjectsCount: 0,
       completionRatePct: 100,
-      status: data.status,
+      status: data.status || 'Active',
       focusArea: data.focus_area || '',
     };
   }
 
-  static async update(teamId: string, updates: Partial<Team>, leadId?: string, deptId?: string): Promise<boolean> {
+  static async update(id: string, updates: Partial<Team>, leadId?: string, deptId?: string): Promise<boolean> {
     if (!isSupabaseConfigured()) return true;
-
-    const payload: any = { updated_at: new Date().toISOString() };
-    if (updates.name !== undefined) payload.name = updates.name;
-    if (updates.code !== undefined) payload.code = updates.code;
-    if (updates.shortTag !== undefined) payload.short_tag = updates.shortTag;
-    if (updates.focusArea !== undefined) {
-      payload.focus_area = updates.focusArea;
-      payload.description = updates.focusArea;
-    }
-    if (updates.status !== undefined) payload.status = updates.status;
-    if (leadId !== undefined) payload.team_lead_id = leadId;
-    if (deptId !== undefined) payload.department_id = deptId;
 
     const { error } = await supabase
       .from('teams')
-      .update(payload)
-      .eq('id', teamId);
+      .update({
+        name: updates.name,
+        code: updates.code,
+        short_tag: updates.shortTag,
+        description: updates.focusArea,
+        focus_area: updates.focusArea,
+        status: updates.status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
 
     if (error) {
-      console.error('Error updating team in Supabase:', error);
+      console.error('Error updating team:', error);
       throw error;
     }
     return true;
   }
 
-  static async delete(teamId: string): Promise<boolean> {
+  static async delete(id: string): Promise<boolean> {
     if (!isSupabaseConfigured()) return true;
 
     const { error } = await supabase
       .from('teams')
       .delete()
-      .eq('id', teamId);
+      .eq('id', id);
 
     if (error) {
-      console.error('Error deleting team in Supabase:', error);
+      console.error('Error deleting team:', error);
       throw error;
     }
     return true;

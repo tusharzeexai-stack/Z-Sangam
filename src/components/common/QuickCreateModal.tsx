@@ -50,11 +50,11 @@ export const QuickCreateModal: React.FC = () => {
 
   if (!isQuickCreateOpen) return null;
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim()) return;
     const proj = projects.find(p => p.code === taskProject);
-    addTask({
+    await addTask({
       title: taskTitle,
       projectCode: taskProject,
       projectName: proj?.name || 'Enterprise Project',
@@ -66,10 +66,10 @@ export const QuickCreateModal: React.FC = () => {
     setIsQuickCreateOpen(false);
   };
 
-  const handleCreateProject = (e: React.FormEvent) => {
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!projName.trim()) return;
-    addProject({
+    await addProject({
       name: projName,
       code: projCode || `ZS-PROJ-0${Math.floor(Math.random() * 80 + 20)}`,
       department: projDept,
@@ -81,10 +81,10 @@ export const QuickCreateModal: React.FC = () => {
     setIsQuickCreateOpen(false);
   };
 
-  const handleCreateTeam = (e: React.FormEvent) => {
+  const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamName.trim()) return;
-    addTeam({
+    await addTeam({
       name: teamName,
       department: teamDept,
       code: `${teamDept.substring(0, 3).toUpperCase()}-${teamName.substring(0, 2).toUpperCase()}`,
@@ -94,10 +94,10 @@ export const QuickCreateModal: React.FC = () => {
     setIsQuickCreateOpen(false);
   };
 
-  const handleCreateDept = (e: React.FormEvent) => {
+  const handleCreateDept = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deptName.trim()) return;
-    addDepartment({
+    await addDepartment({
       name: deptName,
       code: deptCode || deptName.substring(0, 3).toUpperCase(),
     });
@@ -106,10 +106,10 @@ export const QuickCreateModal: React.FC = () => {
     setIsQuickCreateOpen(false);
   };
 
-  const handleCreateMember = (e: React.FormEvent) => {
+  const handleCreateMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberName.trim() || !memberEmail.trim()) return;
-    addMember({
+    await addMember({
       name: memberName,
       email: memberEmail,
       role: memberRole as any,
