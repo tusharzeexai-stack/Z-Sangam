@@ -458,13 +458,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newProject;
   };
 
+
   const updateProject = async (id: string, updates: Partial<Project>) => {
-    if (isSupabaseConfigured()) {
-      await ProjectService.update(id, updates);
+    // Handle team assignment to Supabase project_teams
+    if (isSupabaseConfigured() && updates.teams !== undefined) {
+      const currentProject = projects.find(p => p.id === id);
+      const currentTeams = currentProject?.teams || [];
+      const newTeams = updates.teams || [];
+
+      // Add newly assigned teams
+      const added = newTeams.filter(t => !currentTeams.includes(t));
+      for (const teamName of added) {
+        await ProjectService.assignTeam(id, teamName);
+      }
+      // Remove deassigned teams
+      const removed = currentTeams.filter(t => !newTeams.includes(t));
+      for (const teamName of removed) {
+        await ProjectService.removeTeam(id, teamName);
+      }
     }
+
+    // Handle member assignment to Supabase project_members
+    if (isSupabaseConfigured() && updates.members !== undefined) {
+      const currentProject = projects.find(p => p.id === id);
+      const currentMemberIds = (currentProject?.members || []).map(m => m.id);
+      const newMembers = updates.members || [];
+      const newMemberIds = newMembers.map(m => m.id);
+
+      // Add new members
+      const added = newMembers.filter(m => !currentMemberIds.includes(m.id));
+      for (const member of added) {
+        // Only assign if it's a real Supabase profile UUID (not pm-timestamp format)
+        if (member.id && !member.id.startsWith('pm-')) {
+          await ProjectService.assignMember(id, member.id, member.role);
+        }
+      }
+      // Remove removed members
+      const removedIds = currentMemberIds.filter(mid => !newMemberIds.includes(mid));
+      for (const userId of removedIds) {
+        if (userId && !userId.startsWith('pm-')) {
+          await ProjectService.removeMember(id, userId);
+        }
+      }
+    }
+
+    // Update core project fields in Supabase
+    const coreUpdates: Partial<Project> = {};
+    if (updates.name !== undefined) coreUpdates.name = updates.name;
+    if (updates.description !== undefined) coreUpdates.description = updates.description;
+    if (updates.status !== undefined) coreUpdates.status = updates.status;
+    if (updates.priority !== undefined) coreUpdates.priority = updates.priority;
+    if (updates.progressPct !== undefined) coreUpdates.progressPct = updates.progressPct;
+    if (updates.targetEndDate !== undefined) coreUpdates.targetEndDate = updates.targetEndDate;
+    if (Object.keys(coreUpdates).length > 0 && isSupabaseConfigured()) {
+      await ProjectService.update(id, coreUpdates);
+    }
+
+    // Always update local in-memory state
     setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    showToast('Project Updated', 'Changes were synchronized across the enterprise.', 'info');
+    showToast('Project Updated', 'Changes synchronized with Supabase.', 'info');
   };
+
 
   const addTask = async (taskData: Partial<Task>): Promise<Task> => {
     try {

@@ -203,6 +203,7 @@ export const ProjectDetailView: React.FC = () => {
 
   const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault();
+    let memberId = '';
     let memberName = customMemberName.trim();
     let memberRole = customMemberRole;
     let memberAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
@@ -210,6 +211,7 @@ export const ProjectDetailView: React.FC = () => {
     if (selectedUserId) {
       const foundUser = globalUsers.find(u => u.id === selectedUserId);
       if (foundUser) {
+        memberId = foundUser.id; // Real Supabase UUID — will be persisted in project_members
         memberName = foundUser.name;
         memberRole = foundUser.role;
         memberAvatar = foundUser.avatar;
@@ -219,7 +221,7 @@ export const ProjectDetailView: React.FC = () => {
     if (!memberName) return;
 
     const newMemberObj = {
-      id: `pm-${Date.now()}`,
+      id: memberId || `pm-${Date.now()}`, // Real UUID if from DB, temp if custom name
       name: memberName,
       role: memberRole,
       avatar: memberAvatar
@@ -233,6 +235,7 @@ export const ProjectDetailView: React.FC = () => {
     setCustomMemberName('');
     setShowAddMemberModal(false);
   };
+
 
   const handleAddMilestone = (e: React.FormEvent) => {
     e.preventDefault();
