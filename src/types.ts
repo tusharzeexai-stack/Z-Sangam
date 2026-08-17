@@ -55,6 +55,7 @@ export interface Team {
   code: string;
   shortTag: string;
   department: string;
+  teamLeadId?: string;
   leadName: string;
   leadAvatar: string;
   membersCount: number;

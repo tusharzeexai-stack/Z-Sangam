@@ -29,8 +29,8 @@ export const CreateTeamModal: React.FC = () => {
       setShortTag(editingTeam.shortTag || '');
       setCode(editingTeam.code || '');
       setDepartment(editingTeam.department || departments[0]?.name || '');
-      const foundLead = users.find(u => u.name === editingTeam.leadName);
-      setLeadId(foundLead ? foundLead.id : '');
+      const foundLead = users.find(u => u.id === editingTeam.teamLeadId || u.name === editingTeam.leadName);
+      setLeadId(foundLead ? foundLead.id : (editingTeam.teamLeadId || ''));
       setFocusArea(editingTeam.focusArea || '');
       setStatus(editingTeam.status || 'Active');
     } else {

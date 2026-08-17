@@ -224,12 +224,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         OrganizationService.getDashboardMetrics()
       ]);
 
-      // Calculate real dynamic member & project counts for departments and teams
+      // Calculate real dynamic member & project counts and resolve Team Lead for teams
       const processedTeams = teamsRes.map(t => {
+        const foundLead = t.teamLeadId ? membersRes.find(m => m.id === t.teamLeadId) : null;
         const teamMembersCount = membersRes.filter(m => m.team === t.name || m.department === t.department).length;
         const teamProjectsCount = projectsRes.filter(p => p.teams?.includes(t.name) || p.department === t.department).length;
         return {
           ...t,
+          leadName: foundLead ? foundLead.name : (t.leadName && t.leadName !== 'Unassigned' ? t.leadName : 'Unassigned'),
+          leadAvatar: foundLead ? foundLead.avatar : t.leadAvatar,
           membersCount: t.membersCount > 0 ? t.membersCount : teamMembersCount,
           activeProjectsCount: t.activeProjectsCount > 0 ? t.activeProjectsCount : teamProjectsCount,
         };
@@ -761,7 +764,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         showToast('Supabase Update Error', err?.message || 'Failed to update team in Supabase.', 'error');
       }
     }
-    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates } : t));
+    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates, teamLeadId: leadId !== undefined ? leadId : t.teamLeadId } : t));
     showToast('Team Updated', 'Changes saved successfully.', 'success');
   };
 

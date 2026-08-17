@@ -25,10 +25,10 @@ export class TeamService {
         name: t.name,
         code: t.code,
         shortTag: t.short_tag || t.name.substring(0, 2).toUpperCase(),
-        // Prefer the joined department name, then stored department_name column, then fallback
         department: t.departments?.name || t.department_name || 'Unassigned',
-        leadName: t.lead_name || 'Unassigned',
-        leadAvatar: t.lead_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        teamLeadId: t.team_lead_id || undefined,
+        leadName: 'Unassigned',
+        leadAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
         membersCount: t.members_count || 0,
         activeProjectsCount: t.active_projects_count || 0,
         completionRatePct: t.completion_rate_pct || 0,
@@ -55,6 +55,7 @@ export class TeamService {
         id: newId,
         organization_id: '00000000-0000-0000-0000-000000000001',
         department_id: deptId || null,
+        team_lead_id: leadId || null,
         name: team.name,
         code: team.code || `TM-${team.name?.substring(0, 3).toUpperCase()}`,
         short_tag: team.shortTag || team.name?.substring(0, 2).toUpperCase(),
@@ -76,6 +77,7 @@ export class TeamService {
       code: data.code,
       shortTag: data.short_tag,
       department: (data as any).departments?.name || team.department || 'Unassigned',
+      teamLeadId: data.team_lead_id || leadId || undefined,
       leadName: team.leadName || 'Unassigned',
       leadAvatar: team.leadAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       membersCount: 0,
@@ -100,10 +102,8 @@ export class TeamService {
       dbUpdates.focus_area = updates.focusArea;
     }
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    // Save department_id so the department is correctly reflected on reload
     if (deptId !== undefined) dbUpdates.department_id = deptId || null;
-    if (updates.leadName !== undefined) dbUpdates.lead_name = updates.leadName;
-    if (updates.leadAvatar !== undefined) dbUpdates.lead_avatar = updates.leadAvatar;
+    if (leadId !== undefined) dbUpdates.team_lead_id = leadId || null;
 
     const { error } = await supabase
       .from('teams')
