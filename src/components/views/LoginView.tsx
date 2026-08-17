@@ -3,7 +3,6 @@ import {
   Lock, 
   Mail, 
   ArrowRight, 
-  Sparkles, 
   ShieldCheck,
   Building2,
   Database,
@@ -18,28 +17,33 @@ import { AuthService } from '../../services/auth.service';
 export const LoginView: React.FC = () => {
   const { login, showToast } = useApp();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [fullName, setFullName] = useState('Enterprise Admin');
-  const [email, setEmail] = useState('admin@zsangam.com');
-  const [password, setPassword] = useState('Admin@123');
+  const [fullName, setFullName] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!usernameOrEmail.trim() || !password.trim()) {
+      setAuthError('Please enter both your username/email and password.');
+      return;
+    }
+
     setIsLoading(true);
     setAuthError(null);
 
     try {
       if (mode === 'signup') {
-        const { user, error } = await AuthService.signUp(email, password, fullName);
+        const { user, error } = await AuthService.signUp(usernameOrEmail, password, fullName);
         if (error) throw error;
         showToast('Account Created', 'Your enterprise account was successfully registered.', 'success');
-        await login(email, password);
+        await login(usernameOrEmail, password);
       } else {
-        const success = await login(email, password);
+        const success = await login(usernameOrEmail, password);
         if (!success) {
-          setAuthError('Invalid email or password. Verify your credentials.');
+          setAuthError('Invalid username or password. Please verify your credentials.');
         }
       }
     } catch (err: any) {
@@ -49,21 +53,12 @@ export const LoginView: React.FC = () => {
     }
   };
 
-  const handleDemoSignIn = async () => {
-    setEmail('admin@zsangam.com');
-    setPassword('Admin@123');
-    setIsLoading(true);
-    setAuthError(null);
-    await login('admin@zsangam.com', 'Admin@123');
-    setIsLoading(false);
-  };
-
   const isConnected = isSupabaseConfigured();
 
   return (
     <div className="min-h-screen w-full bg-[#080d1a] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans text-slate-100 selection:bg-blue-600 selection:text-white">
       {/* Outer Card Shell */}
-      <div className="w-full max-w-5xl bg-slate-900/90 border border-slate-800/90 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[620px]">
+      <div className="w-full max-w-5xl bg-slate-900/90 border border-slate-800/90 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[580px]">
         
         {/* Left Side: Brand Narrative & Constellation Graphics */}
         <div className="lg:col-span-6 bg-gradient-to-br from-[#0c1631] via-[#091124] to-[#050914] p-8 lg:p-12 flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-slate-800/80">
@@ -89,7 +84,7 @@ export const LoginView: React.FC = () => {
             <ZSangamLogo size="lg" />
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-950/60 border border-blue-800/50 text-[10px] font-bold text-blue-300">
               <Database className="w-3 h-3 text-blue-400" />
-              <span>{isConnected ? 'Supabase Connected' : 'Enterprise Sandbox'}</span>
+              <span>{isConnected ? 'Supabase Live' : 'Enterprise Engine'}</span>
             </div>
           </div>
 
@@ -110,7 +105,7 @@ export const LoginView: React.FC = () => {
               <span className="font-semibold tracking-wider text-emerald-400">SYSTEMS OPERATIONAL</span>
             </div>
             <div className="text-[11px] text-slate-400 font-mono">
-              v3.0.0 Production Supabase
+              v3.0 Production
             </div>
           </div>
         </div>
@@ -125,7 +120,7 @@ export const LoginView: React.FC = () => {
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
                   {mode === 'login' 
-                    ? 'Enter your corporate credentials or use 1-click demo access.' 
+                    ? 'Enter your corporate credentials to continue.' 
                     : 'Provision an account under Z-Sangam Organization.'}
                 </p>
               </div>
@@ -135,7 +130,7 @@ export const LoginView: React.FC = () => {
             <div className="flex rounded-xl bg-slate-950 p-1 border border-slate-800">
               <button
                 type="button"
-                onClick={() => setMode('login')}
+                onClick={() => { setMode('login'); setAuthError(null); }}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
                   mode === 'login' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
@@ -144,7 +139,7 @@ export const LoginView: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setMode('signup')}
+                onClick={() => { setMode('signup'); setAuthError(null); }}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
                   mode === 'signup' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
@@ -152,17 +147,6 @@ export const LoginView: React.FC = () => {
                 New Registration
               </button>
             </div>
-
-            {/* Quick Demo Button */}
-            <button
-              id="demo-login-btn"
-              type="button"
-              onClick={handleDemoSignIn}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-semibold transition-all hover:scale-[1.01]"
-            >
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              <span>1-Click Demo Login (admin@zsangam.com • Super Admin)</span>
-            </button>
 
             {authError && (
               <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
@@ -186,7 +170,7 @@ export const LoginView: React.FC = () => {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Alex Rivera"
-                      className="w-full bg-slate-950/80 border border-slate-800 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                      className="w-full bg-slate-950/80 border border-slate-800 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
                     />
                   </div>
                 </div>
@@ -194,18 +178,18 @@ export const LoginView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Corporate Email
+                  Username or Corporate Email
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    id="login-email-input"
-                    type="email"
+                    id="login-username-input"
+                    type="text"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@zsangam.com"
-                    className="w-full bg-slate-950/80 border border-slate-800 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                    value={usernameOrEmail}
+                    onChange={(e) => setUsernameOrEmail(e.target.value)}
+                    placeholder="Username or Corporate Email"
+                    className="w-full bg-slate-950/80 border border-slate-800 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
                   />
                 </div>
               </div>
@@ -223,7 +207,7 @@ export const LoginView: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full bg-slate-950/80 border border-slate-800 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full bg-slate-950/80 border border-slate-800 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
                   />
                 </div>
               </div>
@@ -243,11 +227,11 @@ export const LoginView: React.FC = () => {
                     href="#forgot" 
                     onClick={async (e) => { 
                       e.preventDefault(); 
-                      if (email) {
-                        await AuthService.resetPassword(email);
-                        showToast('Reset Sent', `Password reset dispatched to ${email}`, 'info');
+                      if (usernameOrEmail) {
+                        await AuthService.resetPassword(usernameOrEmail);
+                        showToast('Reset Dispatched', `Reset link dispatched to ${usernameOrEmail}`, 'info');
                       } else {
-                        showToast('Email Required', 'Please enter your email above.', 'warning');
+                        showToast('Input Required', 'Please enter your username or email above.', 'warning');
                       }
                     }}
                     className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
@@ -264,7 +248,7 @@ export const LoginView: React.FC = () => {
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
               >
                 {isLoading ? (
-                  <span>Authenticating with Supabase...</span>
+                  <span>Authenticating...</span>
                 ) : (
                   <>
                     <span>{mode === 'login' ? 'Sign In' : 'Create Account & Sign In'}</span>
@@ -276,9 +260,9 @@ export const LoginView: React.FC = () => {
 
             <div className="pt-4 border-t border-slate-800/80 text-center text-xs text-slate-400">
               {mode === 'login' ? (
-                <>
-                  Demo Super Admin: <span className="text-slate-200 font-mono">admin@zsangam.com</span> / <span className="text-slate-200 font-mono">Admin@123</span>
-                </>
+                <span className="text-slate-400 font-medium">
+                  Protected by Enterprise Governance & Security
+                </span>
               ) : (
                 <>
                   Already registered?{' '}

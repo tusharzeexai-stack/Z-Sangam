@@ -115,7 +115,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('zsangam_auth') === 'true';
+  });
   const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('proj-01');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -265,14 +267,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  const login = async (email: string, pass?: string): Promise<boolean> => {
+  const login = async (usernameOrEmail: string, pass?: string): Promise<boolean> => {
     setIsLoading(true);
     try {
+      const inputId = usernameOrEmail.trim();
+      const inputPass = pass ? pass.trim() : '';
+
+      // Default credentials check: Z-Sangam / Admin@Sangam
+      const isDefaultCreds = (inputId === 'Z-Sangam' || inputId.toLowerCase() === 'admin@zsangam.enterprise') && inputPass === 'Admin@Sangam';
+      const isLegacyDemoCreds = (inputId.toLowerCase() === 'admin@zsangam.com' || inputId === 'Z-Sangam') && (inputPass === 'Admin@123' || inputPass === 'Admin@Sangam');
+
+      if (isDefaultCreds || isLegacyDemoCreds) {
+        const authedUser: User = {
+          ...CURRENT_USER,
+          name: 'Z-Sangam Admin',
+          email: 'admin@zsangam.enterprise',
+          role: 'Super Admin'
+        };
+        setCurrentUser(authedUser);
+        setIsAuthenticated(true);
+        sessionStorage.setItem('zsangam_auth', 'true');
+        setActiveView('dashboard');
+        showToast('Welcome to Z-Sangam', 'Signed in as Z-Sangam Super Admin', 'success');
+        if (isSupabaseConfigured()) loadData();
+        return true;
+      }
+
       if (isSupabaseConfigured() && pass) {
-        const { user: authedUser, error } = await AuthService.signIn(email, pass);
+        const { user: authedUser, error } = await AuthService.signIn(usernameOrEmail, pass);
         if (!error && authedUser) {
           setCurrentUser(authedUser);
           setIsAuthenticated(true);
+          sessionStorage.setItem('zsangam_auth', 'true');
           setActiveView('dashboard');
           showToast('Welcome to Z-Sangam', `Signed in as ${authedUser.name} (${authedUser.role})`, 'success');
           loadData();
@@ -280,17 +306,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      // Demo login fallback
-      const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase()) || {
-        ...CURRENT_USER,
-        email: email || CURRENT_USER.email,
-        name: email.includes('admin') ? 'Enterprise Super Admin' : 'John Doe',
-      };
-      setCurrentUser(foundUser);
-      setIsAuthenticated(true);
-      setActiveView('dashboard');
-      showToast('Welcome to Z-Sangam', `Signed in as ${foundUser.name} (${foundUser.role})`, 'success');
-      return true;
+      // Check existing profiles / mock users
+      const foundUser = users.find(
+        u => u.email.toLowerCase() === inputId.toLowerCase() || u.name.toLowerCase() === inputId.toLowerCase()
+      );
+
+      if (foundUser && (inputPass === 'Admin@Sangam' || inputPass === 'Admin@123')) {
+        setCurrentUser(foundUser);
+        setIsAuthenticated(true);
+        sessionStorage.setItem('zsangam_auth', 'true');
+        setActiveView('dashboard');
+        showToast('Welcome to Z-Sangam', `Signed in as ${foundUser.name} (${foundUser.role})`, 'success');
+        return true;
+      }
+
+      showToast('Authentication Failed', 'Invalid username or password.', 'error');
+      return false;
     } catch (err: any) {
       showToast('Authentication Failed', err?.message || 'Invalid credentials.', 'error');
       return false;
@@ -304,6 +335,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await AuthService.signOut();
     }
     setIsAuthenticated(false);
+    sessionStorage.removeItem('zsangam_auth');
     setActiveView('login');
     showToast('Signed Out', 'You have been securely disconnected.', 'info');
   };
