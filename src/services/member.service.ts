@@ -25,7 +25,7 @@ export class MemberService {
       team: p.team_name || 'Frontend Engineering',
       status: (p.status as any) || 'Active',
       skills: p.skills || ['TypeScript', 'Architecture'],
-      projectsCount: 2,
+      projectsCount: 0,
       lastActive: 'Just now',
       location: p.location || 'San Francisco, CA',
       phone: p.phone,

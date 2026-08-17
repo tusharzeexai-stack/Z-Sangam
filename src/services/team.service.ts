@@ -24,9 +24,9 @@ export class TeamService {
         department: t.department_name || 'Engineering & Technology',
         leadName: t.lead_name || 'Unassigned',
         leadAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        membersCount: 3,
-        activeProjectsCount: 2,
-        completionRatePct: 90,
+        membersCount: t.members_count || 0,
+        activeProjectsCount: t.active_projects_count || 0,
+        completionRatePct: t.completion_rate_pct || 0,
         status: (t.status as any) || 'Active',
         focusArea: t.focus_area || t.description || 'Enterprise execution squad',
       }));

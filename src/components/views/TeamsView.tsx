@@ -224,7 +224,7 @@ export const TeamsView: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 font-mono text-slate-200">
-                        {team.membersCount} Engineers
+                        {team.membersCount} Member{team.membersCount === 1 ? '' : 's'}
                       </td>
 
                       <td className="py-3.5 px-4 min-w-[140px]">

@@ -207,8 +207,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         OrganizationService.getDashboardMetrics()
       ]);
 
-      setDepartments(deptsRes);
-      setTeams(teamsRes);
+      // Calculate real dynamic member & project counts for departments and teams
+      const processedTeams = teamsRes.map(t => {
+        const teamMembersCount = membersRes.filter(m => m.team === t.name || m.department === t.department).length;
+        const teamProjectsCount = projectsRes.filter(p => p.teams?.includes(t.name) || p.department === t.department).length;
+        return {
+          ...t,
+          membersCount: t.membersCount > 0 ? t.membersCount : teamMembersCount,
+          activeProjectsCount: t.activeProjectsCount > 0 ? t.activeProjectsCount : teamProjectsCount,
+        };
+      });
+
+      const processedDepts = deptsRes.map(d => {
+        const deptTeamsCount = teamsRes.filter(t => t.department === d.name).length;
+        const deptMembersCount = membersRes.filter(m => m.department === d.name).length;
+        const deptProjectsCount = projectsRes.filter(p => p.department === d.name).length;
+        return {
+          ...d,
+          teamsCount: d.teamsCount > 0 ? d.teamsCount : deptTeamsCount,
+          membersCount: d.membersCount > 0 ? d.membersCount : deptMembersCount,
+          activeProjectsCount: d.activeProjectsCount > 0 ? d.activeProjectsCount : deptProjectsCount,
+        };
+      });
+
+      setDepartments(processedDepts);
+      setTeams(processedTeams);
       setUsers(membersRes);
       setProjects(projectsRes);
       if (projectsRes.length > 0 && !selectedProjectId) {
@@ -603,10 +626,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: deptData.description || 'Department aligned on corporate strategic goals.',
       headName: deptData.headName || currentUser.name,
       headAvatar: deptData.headAvatar || currentUser.avatar,
-      teamsCount: 1,
-      membersCount: 4,
-      activeProjectsCount: 1,
-      resourceAllocationPct: 75,
+      teamsCount: 0,
+      membersCount: 0,
+      activeProjectsCount: 0,
+      resourceAllocationPct: 0,
       status: (deptData.status as any) || 'ON TRACK',
       leadEmail: currentUser.email,
       accentColor: deptData.accentColor || '#3b82f6',
@@ -641,9 +664,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       department: teamData.department || 'Engineering',
       leadName: teamData.leadName || currentUser.name,
       leadAvatar: teamData.leadAvatar || currentUser.avatar,
-      membersCount: 1,
+      membersCount: 0,
       activeProjectsCount: 0,
-      completionRatePct: 100,
+      completionRatePct: 0,
       status: teamData.status || 'Active',
       focusArea: teamData.focusArea || 'Rapid prototyping & production acceleration'
     };
