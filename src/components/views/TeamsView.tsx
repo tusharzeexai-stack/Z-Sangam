@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Users2, 
+  Users,
   Search, 
   Plus, 
   LayoutGrid, 
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Team } from '../../types';
+import { TeamMembersModal } from '../common/TeamMembersModal';
 
 export const TeamsView: React.FC = () => {
   const { 
@@ -26,6 +28,7 @@ export const TeamsView: React.FC = () => {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [selectedTeamForMembers, setSelectedTeamForMembers] = useState<Team | null>(null);
 
   const filteredTeams = teams.filter(t => {
     if (selectedDeptFilter !== 'All' && t.department !== selectedDeptFilter) return false;
@@ -204,7 +207,13 @@ export const TeamsView: React.FC = () => {
                             {team.shortTag}
                           </div>
                           <div>
-                            <div className="font-bold text-slate-100">{team.name}</div>
+                            <div 
+                              onClick={() => setSelectedTeamForMembers(team)}
+                              className="font-bold text-slate-100 hover:text-blue-400 cursor-pointer transition-colors"
+                              title="Click to view and manage team members"
+                            >
+                              {team.name}
+                            </div>
                             <div className="text-[10px] font-mono text-slate-400">{team.code}</div>
                           </div>
                         </div>
@@ -224,7 +233,14 @@ export const TeamsView: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 font-mono text-slate-200">
-                        {team.membersCount} Member{team.membersCount === 1 ? '' : 's'}
+                        <button
+                          onClick={() => setSelectedTeamForMembers(team)}
+                          title="Click to view and manage team members"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 font-semibold border border-blue-500/20 transition-all hover:scale-105"
+                        >
+                          <Users className="w-3.5 h-3.5 text-blue-400" />
+                          <span>{team.membersCount} Member{team.membersCount === 1 ? '' : 's'}</span>
+                        </button>
                       </td>
 
                       <td className="py-3.5 px-4 min-w-[140px]">
@@ -250,6 +266,13 @@ export const TeamsView: React.FC = () => {
 
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setSelectedTeamForMembers(team)}
+                            title="Manage Members"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition-colors"
+                          >
+                            <Users className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => handleEditTeam(team)}
                             title="Edit Team"
@@ -310,6 +333,13 @@ export const TeamsView: React.FC = () => {
 
                   <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                     <button
+                      onClick={() => setSelectedTeamForMembers(team)}
+                      title="Manage Members"
+                      className="p-1 text-slate-400 hover:text-blue-400 rounded hover:bg-slate-800"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                    </button>
+                    <button
                       onClick={() => handleEditTeam(team)}
                       title="Edit Team"
                       className="p-1 text-slate-400 hover:text-blue-400 rounded hover:bg-slate-800"
@@ -326,12 +356,23 @@ export const TeamsView: React.FC = () => {
                   </div>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-100">{team.name}</h3>
+                <h3 
+                  onClick={() => setSelectedTeamForMembers(team)}
+                  className="text-base font-bold text-slate-100 hover:text-blue-400 cursor-pointer transition-colors"
+                >
+                  {team.name}
+                </h3>
                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">{team.focusArea}</p>
 
                 <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-300">
                   <span>{team.department}</span>
-                  <span className="font-mono">{team.membersCount} Specialists</span>
+                  <button
+                    onClick={() => setSelectedTeamForMembers(team)}
+                    className="font-mono text-blue-400 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    <Users className="w-3 h-3 text-blue-400" />
+                    {team.membersCount} Member{team.membersCount === 1 ? '' : 's'}
+                  </button>
                 </div>
               </div>
 
@@ -346,6 +387,12 @@ export const TeamsView: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Team Members Modal */}
+      <TeamMembersModal
+        team={selectedTeamForMembers}
+        onClose={() => setSelectedTeamForMembers(null)}
+      />
     </div>
   );
 };
