@@ -1,0 +1,269 @@
+@import "tailwindcss";
+
+/* -------------------------------------------------------------
+ * Z-Sangam Enterprise Theme System
+ * Dark Mode: Deep Void Slate & Neon Accents
+ * Light Mode: Ultra-Clean Executive White & Slate Charcoal
+ * ------------------------------------------------------------- */
+
+html.light,
+body.light,
+.light {
+  color-scheme: light;
+}
+
+/* -------------------------------------------------------------
+ * LIGHT THEME STYLING OVERRIDES
+ * ------------------------------------------------------------- */
+
+/* 1. Global Workspace & Canvas */
+.light,
+.light body,
+.light .bg-slate-950,
+.light .bg-slate-950\/90,
+.light .bg-slate-950\/80,
+.light .bg-slate-950\/70,
+.light .bg-slate-950\/60,
+.light .bg-slate-950\/50 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* 2. Sidebar & Header: Crisp Pure White Surface */
+.light aside#main-sidebar,
+.light header#main-header,
+.light .bg-\[\#090f1f\],
+.light .bg-\[\#090f1f\]\/95,
+.light .bg-\[\#060b17\] {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* Sidebar Branding & Text Colors */
+.light aside#main-sidebar .text-slate-100,
+.light aside#main-sidebar .text-slate-200,
+.light aside#main-sidebar .text-slate-300,
+.light header#main-header .text-slate-100,
+.light header#main-header .text-slate-200,
+.light header#main-header .text-slate-300 {
+  color: #0f172a !important;
+}
+
+.light aside#main-sidebar .text-slate-400,
+.light aside#main-sidebar .text-slate-500,
+.light header#main-header .text-slate-400,
+.light header#main-header .text-slate-500 {
+  color: #64748b !important;
+}
+
+.light aside#main-sidebar .border-slate-800,
+.light aside#main-sidebar .border-slate-800\/80,
+.light aside#main-sidebar .border-slate-800\/50,
+.light header#main-header .border-slate-800,
+.light header#main-header .border-slate-800\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Sidebar Active Pill Item (Matches reference image active item) */
+.light aside#main-sidebar .bg-blue-600\/15 {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  font-weight: 600 !important;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05) !important;
+}
+
+.light aside#main-sidebar .bg-blue-600\/15 .text-blue-400,
+.light aside#main-sidebar .bg-blue-600\/15 svg {
+  color: #0f172a !important;
+}
+
+/* Sidebar Hover Navigation Items */
+.light aside#main-sidebar button:hover:not(.bg-blue-600\/15) {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Sidebar Logout Accent */
+.light aside#main-sidebar #sidebar-logout-btn,
+.light aside#main-sidebar .text-rose-400 {
+  color: #dc2626 !important;
+}
+
+/* 3. Surface Cards, Panels, Widgets & Modals */
+.light .bg-slate-900,
+.light .bg-slate-900\/95,
+.light .bg-slate-900\/90,
+.light .bg-slate-900\/80,
+.light .bg-slate-900\/70,
+.light .bg-slate-900\/60,
+.light .bg-slate-900\/50,
+.light .bg-slate-900\/40 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Inner containers & section cards */
+.light .bg-slate-950\/80,
+.light .bg-slate-950\/60,
+.light .bg-slate-950\/50,
+.light .bg-slate-950\/40,
+.light .bg-slate-950\/30,
+.light .bg-slate-950\/20 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light .bg-slate-800,
+.light .bg-slate-800\/80,
+.light .bg-slate-800\/60,
+.light .bg-slate-800\/50,
+.light .bg-slate-800\/40,
+.light .bg-slate-800\/30 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* 4. Global Borders (Crisp Clean Light Slate) */
+.light .border-slate-800,
+.light .border-slate-800\/90,
+.light .border-slate-800\/80,
+.light .border-slate-800\/60,
+.light .border-slate-800\/50,
+.light .border-slate-800\/40,
+.light .border-slate-700,
+.light .border-slate-700\/80,
+.light .border-slate-700\/60 {
+  border-color: #e2e8f0 !important;
+}
+
+/* 5. Typography Hierarchy (Deep Slate / Charcoal Text) */
+.light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+.light .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+/* Blue accents in Light Mode */
+.light .text-blue-400 {
+  color: #2563eb !important;
+}
+
+.light .text-blue-300 {
+  color: #1d4ed8 !important;
+}
+
+/* 6. Form Inputs, Selects & Textareas */
+.light input,
+.light select,
+.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.light input:focus,
+.light select:focus,
+.light textarea:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+}
+
+/* 7. Tables & Data Grids */
+.light thead,
+.light thead th {
+  color: #475569 !important;
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  font-weight: 600 !important;
+}
+
+.light tbody tr {
+  border-color: #f1f5f9 !important;
+}
+
+.light tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* 8. Status Badges & Pill Colors (Matching reference image) */
+/* Completed / Success Pill (Light Emerald Green) */
+.light .bg-emerald-500\/10,
+.light .bg-emerald-500\/20,
+.light .bg-emerald-500\/30 {
+  background-color: #e6f4ea !important;
+  color: #137333 !important;
+  border-color: #ceead6 !important;
+  font-weight: 600 !important;
+}
+
+.light .text-emerald-400,
+.light .text-emerald-500 {
+  color: #137333 !important;
+}
+
+/* Active / In Progress Pill (Light Blue) */
+.light .bg-blue-500\/10,
+.light .bg-blue-500\/20,
+.light .bg-blue-500\/30 {
+  background-color: #e8f0fe !important;
+  color: #1a73e8 !important;
+  border-color: #d2e3fc !important;
+  font-weight: 600 !important;
+}
+
+/* Warning / Medium Priority (Light Amber/Orange) */
+.light .bg-amber-500\/10,
+.light .bg-amber-500\/20,
+.light .bg-amber-500\/30 {
+  background-color: #fef7e0 !important;
+  color: #b06000 !important;
+  border-color: #feefc3 !important;
+  font-weight: 600 !important;
+}
+
+.light .text-amber-400,
+.light .text-amber-500 {
+  color: #b06000 !important;
+}
+
+/* 9. Modals, Backdrops & Overlays */
+.light .bg-black\/75,
+.light .bg-black\/60,
+.light .bg-black\/50 {
+  background-color: rgba(15, 23, 42, 0.35) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Custom Scrollbar in Light Mode */
+.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+

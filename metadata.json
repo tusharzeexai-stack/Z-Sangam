@@ -1,0 +1,6 @@
+{
+  "name": "Z-Sangam",
+  "description": "Enterprise-grade synchronization, work management, and analytics platform for high-velocity organizations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
