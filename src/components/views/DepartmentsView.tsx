@@ -21,6 +21,8 @@ import { Department } from '../../types';
 export const DepartmentsView: React.FC = () => {
   const { 
     departments, 
+    users,
+    projects,
     setIsQuickCreateOpen, 
     setActiveView, 
     showToast 
@@ -37,6 +39,11 @@ export const DepartmentsView: React.FC = () => {
 
   const coreDepts = filteredDepts.filter(d => d.category !== 'Corporate Functions');
   const corporateDepts = filteredDepts.filter(d => d.category === 'Corporate Functions');
+
+  const activeProjCount = projects.filter(p => p.status === 'In Progress' || p.status === 'in_progress').length;
+  const avgHealthPct = departments.length 
+    ? Math.round(departments.reduce((acc, d) => acc + (d.resourceAllocationPct || 85), 0) / departments.length)
+    : 100;
 
   return (
     <div className="space-y-6 pb-12 font-sans">
@@ -98,25 +105,25 @@ export const DepartmentsView: React.FC = () => {
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80">
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">TOTAL DEPARTMENTS</span>
           <div className="text-2xl font-bold text-slate-100 font-mono mt-1">{departments.length}</div>
-          <div className="text-[10px] text-emerald-400 font-semibold mt-1">+1 this year</div>
+          <div className="text-[10px] text-emerald-400 font-semibold mt-1">+{departments.length} Units</div>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80">
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">TOTAL PERSONNEL</span>
-          <div className="text-2xl font-bold text-slate-100 font-mono mt-1">148</div>
-          <div className="text-[10px] text-emerald-400 font-semibold mt-1">+12% growth</div>
+          <div className="text-2xl font-bold text-slate-100 font-mono mt-1">{users.length}</div>
+          <div className="text-[10px] text-emerald-400 font-semibold mt-1">Active Members</div>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80">
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">ACTIVE PROJECTS</span>
-          <div className="text-2xl font-bold text-slate-100 font-mono mt-1">34</div>
+          <div className="text-2xl font-bold text-slate-100 font-mono mt-1">{activeProjCount}</div>
           <div className="text-[10px] text-blue-400 font-semibold mt-1">Across all departments</div>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80">
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">AVG. HEALTH SCORE</span>
-          <div className="text-2xl font-bold text-slate-100 font-mono mt-1">92%</div>
-          <div className="text-[10px] text-emerald-400 font-semibold mt-1">High efficiency</div>
+          <div className="text-2xl font-bold text-slate-100 font-mono mt-1">{avgHealthPct}%</div>
+          <div className="text-[10px] text-emerald-400 font-semibold mt-1">{avgHealthPct >= 80 ? 'High efficiency' : 'Moderate'}</div>
         </div>
       </div>
 

@@ -18,6 +18,7 @@ export const TeamsView: React.FC = () => {
   const { 
     teams, 
     departments, 
+    projects,
     setIsQuickCreateOpen, 
     setActiveView, 
     showToast 
@@ -32,6 +33,11 @@ export const TeamsView: React.FC = () => {
     if (search && !t.name.toLowerCase().includes(search.toLowerCase()) && !t.code.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const activeProjectsCount = projects.filter(p => p.status === 'In Progress' || p.status === 'in_progress').length;
+  const avgHealthScore = teams.length 
+    ? Math.round(teams.reduce((acc, t) => acc + (t.completionRatePct || 100), 0) / teams.length) 
+    : 100;
 
   return (
     <div className="space-y-6 pb-12 font-sans">
@@ -74,7 +80,7 @@ export const TeamsView: React.FC = () => {
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80">
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">TOTAL TEAMS</span>
-            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">+2 Squads</span>
+            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">+{teams.length} Squads</span>
           </div>
           <div className="text-2xl font-bold text-slate-100 font-mono mt-2">{teams.length}</div>
           <div className="text-[10px] text-slate-400 mt-1">Cross-functional units active</div>
@@ -83,18 +89,18 @@ export const TeamsView: React.FC = () => {
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80">
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">ACTIVE PROJECTS</span>
-            <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded">High Load</span>
+            <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded">{activeProjectsCount > 0 ? 'Active Load' : 'Normal Load'}</span>
           </div>
-          <div className="text-2xl font-bold text-slate-100 font-mono mt-2">142</div>
+          <div className="text-2xl font-bold text-slate-100 font-mono mt-2">{activeProjectsCount}</div>
           <div className="text-[10px] text-slate-400 mt-1">Across entire organization</div>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80">
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">TEAM HEALTH SCORE</span>
-            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">Optimum</span>
+            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">{avgHealthScore >= 80 ? 'Optimum' : 'Review Required'}</span>
           </div>
-          <div className="text-2xl font-bold text-slate-100 font-mono mt-2">94%</div>
+          <div className="text-2xl font-bold text-slate-100 font-mono mt-2">{avgHealthScore}%</div>
           <div className="text-[10px] text-slate-400 mt-1">Efficiency benchmark met</div>
         </div>
       </div>
@@ -216,7 +222,7 @@ export const TeamsView: React.FC = () => {
           <div className="p-4 border-t border-slate-800/80 bg-slate-950/30 flex items-center justify-between text-xs text-slate-400">
             <div>
               Showing <strong className="text-slate-200 font-mono">{filteredTeams.length}</strong> of{' '}
-              <strong className="text-slate-200 font-mono">24</strong> total teams
+              <strong className="text-slate-200 font-mono">{teams.length}</strong> total teams
             </div>
 
             <div className="flex items-center gap-1">

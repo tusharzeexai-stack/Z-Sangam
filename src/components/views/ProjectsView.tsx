@@ -43,10 +43,10 @@ export const ProjectsView: React.FC = () => {
 
   const filterTabs = [
     { id: 'All', label: 'All Projects', count: projects.length },
-    { id: 'Active', label: 'Active', count: projects.filter(p => p.status === 'In Progress' || p.status === 'Active').length },
-    { id: 'Planning', label: 'Planning', count: 4 },
-    { id: 'Completed', label: 'Completed', count: 28 },
-    { id: 'On Hold', label: 'On Hold', count: 2 },
+    { id: 'Active', label: 'Active', count: projects.filter(p => p.status === 'In Progress' || p.status === 'Active' || p.status === 'in_progress').length },
+    { id: 'Planning', label: 'Planning', count: projects.filter(p => p.status === 'Planning' || p.status === 'planning').length },
+    { id: 'Completed', label: 'Completed', count: projects.filter(p => p.status === 'Completed' || p.status === 'completed').length },
+    { id: 'On Hold', label: 'On Hold', count: projects.filter(p => p.status === 'On Hold' || p.status === 'on_hold').length },
   ];
 
   const query = (localSearch || searchQuery).toLowerCase();
@@ -408,7 +408,7 @@ export const ProjectsView: React.FC = () => {
           <div className="p-4 border-t border-slate-800/80 bg-slate-950/30 flex items-center justify-between text-xs text-slate-400">
             <div>
               Showing <strong className="text-slate-200 font-mono">{filteredProjects.length}</strong> of{' '}
-              <strong className="text-slate-200 font-mono">24</strong> total projects
+              <strong className="text-slate-200 font-mono">{projects.length}</strong> total projects
             </div>
 
             <div className="flex items-center gap-1">

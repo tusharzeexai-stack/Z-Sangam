@@ -88,7 +88,7 @@ export const MembersView: React.FC = () => {
               Member Directory
             </h1>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20 font-mono">
-              842 Total
+              {users.length} Total
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
@@ -342,7 +342,7 @@ export const MembersView: React.FC = () => {
         <div className="p-4 border-t border-slate-800/80 bg-slate-950/30 flex items-center justify-between text-xs text-slate-400">
           <div>
             Showing <strong className="text-slate-200 font-mono">{filteredUsers.length}</strong> of{' '}
-            <strong className="text-slate-200 font-mono">842</strong> specialists
+            <strong className="text-slate-200 font-mono">{users.length}</strong> specialists
           </div>
 
           <div className="flex items-center gap-1">

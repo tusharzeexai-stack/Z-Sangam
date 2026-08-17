@@ -276,7 +276,7 @@ export const TasksView: React.FC = () => {
                   />
                   <path
                     className="text-emerald-400"
-                    strokeDasharray="68, 100"
+                    strokeDasharray={`${completionPct}, 100`}
                     strokeWidth="4"
                     strokeLinecap="round"
                     stroke="currentColor"
@@ -285,15 +285,15 @@ export const TasksView: React.FC = () => {
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-black text-slate-100 font-mono">68%</span>
+                  <span className="text-sm font-black text-slate-100 font-mono">{completionPct}%</span>
                 </div>
               </div>
 
               <div className="space-y-1 text-xs">
-                <div className="text-slate-200 font-bold">24 Completed</div>
-                <div className="text-slate-400">11 Remaining in sprint</div>
+                <div className="text-slate-200 font-bold">{completedCount} Completed</div>
+                <div className="text-slate-400">{tasks.length - completedCount} Remaining in sprint</div>
                 <div className="text-[10px] text-emerald-400 font-semibold mt-1">
-                  On schedule for Sprint 14 delivery
+                  On schedule for Sprint delivery
                 </div>
               </div>
             </div>

@@ -32,23 +32,28 @@ export const DashboardView: React.FC = () => {
     showToast 
   } = useApp();
 
-  const activeProjectsCount = projects.filter(p => p.status === 'In Progress' || p.status === 'Active').length;
-  const completedTasksCount = tasks.filter(t => t.status === 'Completed').length + 380;
+  const activeProjectsCount = projects.filter(p => p.status === 'In Progress' || p.status === 'Active' || p.status === 'in_progress').length;
+  const completedTasksCount = tasks.filter(t => t.status === 'Completed' || t.status === 'completed').length;
 
   const topStats = [
-    { label: 'TOTAL PROJECTS', value: projects.length, change: '+12.4%', icon: FolderKanban, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: 'TOTAL PROJECTS', value: projects.length, change: `+${projects.length} Active`, icon: FolderKanban, color: 'text-blue-400', bg: 'bg-blue-500/10' },
     { label: 'ACTIVE', value: activeProjectsCount, change: 'Running', icon: PlayCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: 'DEPARTMENTS', value: departments.length, change: '8 Core', icon: Building2, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'TEAMS', value: teams.length, change: '19 Squads', icon: Users2, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-    { label: 'MEMBERS', value: '126', change: 'Synced', icon: UserCheck, color: 'text-sky-400', bg: 'bg-sky-500/10' },
+    { label: 'DEPARTMENTS', value: departments.length, change: `${departments.length} Units`, icon: Building2, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { label: 'TEAMS', value: teams.length, change: `${teams.length} Squads`, icon: Users2, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+    { label: 'MEMBERS', value: users.length, change: 'Synced', icon: UserCheck, color: 'text-sky-400', bg: 'bg-sky-500/10' },
     { label: 'TASKS DONE', value: completedTasksCount, change: 'Velocity ^', icon: CheckSquare, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
   ];
 
+  const inProgressCount = projects.filter(p => p.status === 'In Progress' || p.status === 'Active' || p.status === 'in_progress').length;
+  const planningCount = projects.filter(p => p.status === 'Planning' || p.status === 'planning').length;
+  const completedProjCount = projects.filter(p => p.status === 'Completed' || p.status === 'completed').length;
+  const blockedCount = projects.filter(p => p.status === 'Blocked' || p.status === 'On Hold' || p.status === 'at_risk').length;
+
   const portfolioData = [
-    { name: 'In Progress', value: 12, color: '#3b82f6' },
-    { name: 'Planning', value: 6, color: '#94a3b8' },
-    { name: 'Completed', value: 4, color: '#10b981' },
-    { name: 'Blocked / At Risk', value: 2, color: '#ef4444' },
+    { name: 'In Progress', value: inProgressCount, color: '#3b82f6' },
+    { name: 'Planning', value: planningCount, color: '#94a3b8' },
+    { name: 'Completed', value: completedProjCount, color: '#10b981' },
+    { name: 'Blocked / At Risk', value: blockedCount, color: '#ef4444' },
   ];
 
   const handleExportReport = () => {
@@ -244,7 +249,7 @@ export const DashboardView: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-black text-slate-100 font-mono">24</span>
+                <span className="text-2xl font-black text-slate-100 font-mono">{projects.length}</span>
                 <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">TOTAL</span>
               </div>
             </div>

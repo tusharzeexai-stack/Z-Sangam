@@ -27,6 +27,10 @@ export const Sidebar: React.FC = () => {
     currentUser, 
     logout, 
     projects,
+    tasks,
+    teams,
+    departments,
+    users,
     isSidebarOpen,
     setIsSidebarOpen
   } = useApp();
@@ -48,16 +52,16 @@ export const Sidebar: React.FC = () => {
     {
       title: 'ORGANIZATION',
       items: [
-        { id: 'departments' as ViewType, label: 'Departments', icon: Building2, count: 8 },
-        { id: 'teams' as ViewType, label: 'Teams', icon: Users2, count: 24 },
-        { id: 'members' as ViewType, label: 'Members', icon: UserCheck, count: 126 },
+        { id: 'departments' as ViewType, label: 'Departments', icon: Building2, count: departments.length },
+        { id: 'teams' as ViewType, label: 'Teams', icon: Users2, count: teams.length },
+        { id: 'members' as ViewType, label: 'Members', icon: UserCheck, count: users.length },
       ]
     },
     {
       title: 'WORK MANAGEMENT',
       items: [
         { id: 'projects' as ViewType, label: 'Projects', icon: FolderKanban, count: projects.length },
-        { id: 'tasks' as ViewType, label: 'Tasks', icon: CheckSquare, count: 384 },
+        { id: 'tasks' as ViewType, label: 'Tasks', icon: CheckSquare, count: tasks.length },
       ]
     },
     {
