@@ -38,6 +38,50 @@ export class DepartmentService {
     }
   }
 
+  static async getOrCreateByName(name: string): Promise<string | undefined> {
+    if (!isSupabaseConfigured() || !name) return undefined;
+
+    try {
+      const trimmedName = name.trim();
+      const { data: existing } = await supabase
+        .from('departments')
+        .select('id')
+        .ilike('name', trimmedName)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        return existing[0].id;
+      }
+
+      const newId = crypto.randomUUID();
+      const code = `D-${trimmedName.substring(0, 3).toUpperCase()}`;
+      const { data: created, error } = await supabase
+        .from('departments')
+        .insert({
+          id: newId,
+          organization_id: '00000000-0000-0000-0000-000000000001',
+          name: trimmedName,
+          code: code,
+          description: `${trimmedName} Department`,
+          status: 'ON TRACK',
+          accent_color: '#3b82f6',
+          category: 'Core Engineering'
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating department auto-record:', error);
+        return undefined;
+      }
+
+      return created?.id;
+    } catch (err) {
+      console.error('DepartmentService.getOrCreateByName error:', err);
+      return undefined;
+    }
+  }
+
   static async create(dept: Partial<Department>): Promise<Department | null> {
     if (!isSupabaseConfigured()) return null;
 

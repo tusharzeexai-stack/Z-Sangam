@@ -1,12 +1,13 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Team } from '../types';
+import { DepartmentService } from './department.service';
 
 export class TeamService {
   static async getAll(): Promise<Team[]> {
     if (!isSupabaseConfigured()) return [];
 
     try {
-      // Join with departments to get department_name, and profiles for lead
+      // Join with departments to get department_name
       const { data, error } = await supabase
         .from('teams')
         .select(`
@@ -48,13 +49,18 @@ export class TeamService {
   ): Promise<Team | null> {
     if (!isSupabaseConfigured()) return null;
 
+    let finalDeptId = deptId;
+    if (!finalDeptId && team.department) {
+      finalDeptId = await DepartmentService.getOrCreateByName(team.department);
+    }
+
     const newId = crypto.randomUUID();
     const { data, error } = await supabase
       .from('teams')
       .insert({
         id: newId,
         organization_id: '00000000-0000-0000-0000-000000000001',
-        department_id: deptId || null,
+        department_id: finalDeptId || null,
         team_lead_id: leadId || null,
         name: team.name,
         code: team.code || `TM-${team.name?.substring(0, 3).toUpperCase()}`,
@@ -88,8 +94,13 @@ export class TeamService {
     };
   }
 
-  static async update(id: string, updates: Partial<Team>, leadId?: string, deptId?: string): Promise<boolean> {
+  static async update(id: string, updates: Partial<Team>, deptId?: string, leadId?: string): Promise<boolean> {
     if (!isSupabaseConfigured()) return true;
+
+    let finalDeptId = deptId;
+    if (!finalDeptId && updates.department) {
+      finalDeptId = await DepartmentService.getOrCreateByName(updates.department);
+    }
 
     const dbUpdates: Record<string, any> = {
       updated_at: new Date().toISOString(),
@@ -102,7 +113,7 @@ export class TeamService {
       dbUpdates.focus_area = updates.focusArea;
     }
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (deptId !== undefined) dbUpdates.department_id = deptId || null;
+    if (finalDeptId) dbUpdates.department_id = finalDeptId;
     if (leadId !== undefined) dbUpdates.team_lead_id = leadId || null;
 
     const { error } = await supabase

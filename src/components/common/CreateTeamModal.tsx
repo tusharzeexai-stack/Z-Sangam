@@ -76,8 +76,8 @@ export const CreateTeamModal: React.FC = () => {
             focusArea,
             status
           },
-          leadId,
-          selectedDept?.id
+          selectedDept?.id,
+          leadId
         );
       } else {
         await addTeam(

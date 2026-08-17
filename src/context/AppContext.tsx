@@ -75,7 +75,7 @@ interface AppContextType {
   deleteMember: (userId: string) => Promise<void>;
   addDepartment: (deptData: Partial<Department>) => Promise<Department>;
   addTeam: (teamData: Partial<Team>, deptId?: string, leadId?: string) => Promise<Team>;
-  updateTeam: (teamId: string, updates: Partial<Team>, leadId?: string, deptId?: string) => Promise<void>;
+  updateTeam: (teamId: string, updates: Partial<Team>, deptId?: string, leadId?: string) => Promise<void>;
   deleteTeam: (teamId: string) => Promise<void>;
   updateRolePermission: (roleId: string, section: 'userManagement' | 'workManagement', permKey: string, val: boolean) => void;
   refreshData: () => Promise<void>;
@@ -755,10 +755,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newTeam;
   };
 
-  const updateTeam = async (teamId: string, updates: Partial<Team>, leadId?: string, deptId?: string) => {
+  const updateTeam = async (teamId: string, updates: Partial<Team>, deptId?: string, leadId?: string) => {
     if (isSupabaseConfigured()) {
       try {
-        await TeamService.update(teamId, updates, leadId, deptId);
+        await TeamService.update(teamId, updates, deptId, leadId);
       } catch (err: any) {
         console.error('Error updating team in Supabase:', err);
         showToast('Supabase Update Error', err?.message || 'Failed to update team in Supabase.', 'error');
